@@ -1,0 +1,93 @@
+RUMP_TOP=rump
+# RUMP_DEBUG=-DDEBUG -DDEBUGJACK
+RUMPUSER_CONF_H=$(LIB_USER_TOOL_DIR)/$(RUMP_TOP)/lib/librumpuser/rumpuser_config.h
+
+RUMP_NUSE_SRC=nuse-syscalls.c
+
+RUMP_SRC= \
+$(RUMP_TOP)/lib/librumpuser/rumpuser_sp.c \
+$(RUMP_TOP)/lib/librumpuser/rumpuser.c \
+$(RUMP_TOP)/lib/librumpuser/rumpuser_errtrans.c \
+$(RUMP_TOP)/lib/librumpuser/rumpuser_random.c \
+$(RUMP_TOP)/lib/librumpuser/rumpuser_pth_dummy.c
+
+RUMP_HIJACK_SRC= \
+$(RUMP_TOP)/lib/librumphijack/hijack.c
+
+RUMP_CLIENT_SRC= \
+$(RUMP_TOP)/lib/librumpclient/rumpclient.c \
+$(RUMP_TOP)/sys/rump/librump/rumpkern/rump_syscalls.c
+
+RUMP_CLIENT_SRC_PATH=$(addprefix $(LIB_USER_TOOL_DIR)/,$(RUMP_CLIENT_SRC))
+
+RUMP_CFLAGS=-I$(LIB_USER_TOOL_DIR)/$(RUMP_TOP)/lib/librumpuser \
+	-I$(LIB_USER_TOOL_DIR)/$(RUMP_TOP)/sys/rump/include \
+	-I$(LIB_USER_TOOL_DIR)/$(RUMP_TOP)/sys \
+	-I$(LIB_USER_TOOL_DIR)/$(RUMP_TOP)/lib/librumpuser \
+	-I$(LIB_USER_TOOL_DIR)/$(RUMP_TOP)/lib/librumpclient \
+	$(CFLAGS_USPACE) -DRUMPUSER_CONFIG -DLIBRUMPUSER \
+	-I$(LIB_USER_TOOL_DIR) -DRUMP_CLIENT \
+	$(RUMP_DEBUG)
+
+RUMP_LDFLAGS=-lpthread -ldl -Wl,-rpath=$(LIB_USER_TOOL_DIR) -L$(LIB_USER_TOOL_DIR) -lrumpclient $(covl_$(COV))
+
+RUMP_NUSE_OBJ=$(addprefix $(LIB_USER_TOOL_DIR)/,$(addsuffix .o,$(basename $(RUMP_NUSE_SRC))))
+RUMP_OBJ=$(addprefix $(LIB_USER_TOOL_DIR)/,$(addsuffix .o,$(basename $(RUMP_SRC))))
+RUMP_CLIENT_OBJ=$(addprefix $(LIB_USER_TOOL_DIR)/,$(addsuffix .o,$(basename $(RUMP_CLIENT_SRC))))
+RUMP_HIJACK_OBJ=$(addprefix $(LIB_USER_TOOL_DIR)/,$(addsuffix .o,$(basename $(RUMP_HIJACK_SRC))))
+
+RUMPS_OBJ=$(RUMP_OBJ) $(RUMP_NUSE_OBJ)
+
+LIB_RUMP_HIJACK=$(LIB_USER_TOOL_DIR)/libnuse-hijack.so
+LIB_RUMP_CLIENT=$(LIB_USER_TOOL_DIR)/librumpclient.so
+
+ALL_OBJS+=$(RUMP_NUSE_OBJ) $(RUMP_OBJ) $(RUMP_CLIENT_OBJ) $(RUMP_HIJACK_OBJ) $(LIB_RUMP_HIJACK) $(LIB_RUMP_CLIENT)
+
+# required to build rump-netbsd-src
+quiet_cmd_gitrump = GIT	$@
+      cmd_gitrump = rm -f $(LIB_USER_TOOL_DIR)/git-sparse ;\
+		    wget --no-check-certificate -q \
+		    https://raw.githubusercontent.com/icoxfog417/git-sparse/master/git-sparse \
+		    -O $(LIB_USER_TOOL_DIR)/git-sparse ;\
+		    sed -i "s/\/bin\/sh/\/bin\/bash/" $(LIB_USER_TOOL_DIR)/git-sparse ;\
+		    chmod +x $(LIB_USER_TOOL_DIR)/git-sparse ;\
+		    PATH=${PATH}:$(LIB_USER_TOOL_DIR) git sparse
+
+$(LIB_USER_TOOL_DIR)/rump-git-sparse:
+	$(call if_changed,gitrump)
+
+$(RUMPUSER_CONF_H):
+	cd $(LIB_USER_TOOL_DIR)/$(RUMP_TOP)/lib/librumpuser/ && LDFLAGS= CFLAGS= ./configure
+
+# rumpserver object compile: embed to libnuse-linux.so
+quiet_cmd_rumps = RUMPS		$@
+      cmd_rumps = $(CC) $(CFLAGS_USPACE) $(RUMP_CFLAGS) \
+                  -DHOSTOPS -c $< -o $@
+$(RUMP_OBJ): %.o : %.c $(RUMPUSER_CONF_H) $(LIB_USER_TOOL_DIR)/Makefile.rump
+	$(call if_changed,rumps)
+
+quiet_cmd_rumpsys = RUMPS		$@
+      cmd_rumpsys = $(CC) $(CFLAGS_USPACE) $(RUMP_CFLAGS) \
+                    -I$(srctree)/include -DHOSTOPS -c $< -o $@
+$(RUMP_NUSE_OBJ): %.o : %.c $(RUMPUSER_CONF_H) $(LIB_USER_TOOL_DIR)/Makefile.rump
+	$(call if_changed,rumpsys)
+
+# librumpclient.so
+quiet_cmd_rclient = RUMPHJ	$@
+      cmd_rclient = $(CC) -shared $(RUMP_CLIENT_OBJ) $(covl_$(COV)) -o $@
+$(LIB_RUMP_CLIENT): $(RUMP_CLIENT_OBJ) $(LIB_USER_TOOL_DIR)/Makefile.rump
+	$(call if_changed,rclient)
+
+# rump {client,hijack} compile
+quiet_cmd_rumpc = RUMPC		$@
+      cmd_rumpc = $(CC) $(RUMP_CFLAGS) -U_FORTIFY_SOURCE -c $< -o $@
+$(RUMP_CLIENT_OBJ): %.o : %.c $(LIB_USER_TOOL_DIR)/Makefile.rump
+	$(call if_changed,rumpc)
+$(RUMP_HIJACK_OBJ): %.o : %.c $(LIB_USER_TOOL_DIR)/Makefile.rump
+	$(call if_changed,rumpc)
+
+# libnuse-hijack.so
+quiet_cmd_hijack = RUMPHJ	$@
+      cmd_hijack = $(CC) -shared $(RUMP_HIJACK_OBJ) $(RUMP_LDFLAGS) -o $@
+$(LIB_RUMP_HIJACK): $(RUMP_HIJACK_OBJ) $(LIB_RUMP_CLIENT) $(LIB_USER_TOOL_DIR)/Makefile.rump
+	$(call if_changed,hijack)

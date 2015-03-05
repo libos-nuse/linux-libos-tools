@@ -1,0 +1,6 @@
+[submodule "dpdk"]
+	path = dpdk
+	url = git://dpdk.org/dpdk
+[submodule "rump"]
+	path = rump
+	url = git://github.com/libos-nuse/src-netbsd.git
