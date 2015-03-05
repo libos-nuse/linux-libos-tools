@@ -10,10 +10,12 @@ ifdef CONFIG_LIB_NUSE_DPDK
 	include $(LIB_USER_TOOL_DIR)/Makefile.dpdk
 	DPDK_LDFLAGS=-L$(RTE_SDK)/$(RTE_TARGET)/lib $(ARCH_DIR)/nuse-vif-dpdk.o $(DPDK_LDLIBS)
 	NUSE_USPACE_SRC+=nuse-vif-dpdk.c
+	git submodule update dpdk --init
 endif
 
 ifdef CONFIG_LIB_NUSE_NETMAP
 	NUSE_USPACE_SRC+=nuse-vif-netmap.c
+	git submodule update netmap --init
 endif
 
 #obj-$(CONFIG_LIB_NUSE_NETMAP)          += nuse-vif-netmap.o
@@ -55,7 +57,7 @@ quiet_cmd_linksim = LIBSIM	$@
       cmd_linksim = $(CC) -Wl,--whole-archive $(SIM_OBJ) $(LDFLAGS) $(LDFLAGS_SIM) -o $@; \
 		    ln -s -f $(SIM_LIB) liblinux-sim.so
 
-$(NUSE_LIB):$(LIB_USER_TOOL_DIR)/rump-git-sparse $(DPDK_OBJ) $(NUSE_USPACE_OBJ) $(RUMPS_OBJ) $(KERNEL_LIB) $(ARCH_DIR)/linker.lds
+$(NUSE_LIB):$(LIB_USER_TOOL_DIR)/rump $(DPDK_OBJ) $(NUSE_USPACE_OBJ) $(RUMPS_OBJ) $(KERNEL_LIB) $(ARCH_DIR)/linker.lds
 	$(call if_changed,linknuse)
 
 $(SIM_LIB): $(SIM_OBJ) $(KERNEL_LIB) $(ARCH_DIR)/linker.lds

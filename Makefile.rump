@@ -45,19 +45,26 @@ ALL_OBJS+=$(RUMP_NUSE_OBJ) $(RUMP_OBJ) $(RUMP_CLIENT_OBJ) $(RUMP_HIJACK_OBJ) $(L
 
 # required to build rump-netbsd-src
 quiet_cmd_gitrump = GIT	$@
-      cmd_gitrump = rm -f $(LIB_USER_TOOL_DIR)/git-sparse ;\
+      cmd_gitrump = cd $(LIB_USER_TOOL_DIR) ;\
+		    if [ ! -d "rump" ] ; then \
+		      git submodule init; \
+		      git submodule update rump ;\
+		    fi ;\
+		    rm -f git-sparse ;\
 		    wget --no-check-certificate -q \
 		    https://raw.githubusercontent.com/icoxfog417/git-sparse/master/git-sparse \
-		    -O $(LIB_USER_TOOL_DIR)/git-sparse ;\
-		    sed -i "s/\/bin\/sh/\/bin\/bash/" $(LIB_USER_TOOL_DIR)/git-sparse ;\
-		    chmod +x $(LIB_USER_TOOL_DIR)/git-sparse ;\
-		    PATH=${PATH}:$(LIB_USER_TOOL_DIR) git sparse
+		    -O git-sparse ;\
+		    sed -i "s/\/bin\/sh/\/bin\/bash/" git-sparse ;\
+		    chmod +x git-sparse ;\
+		    PATH=${PATH}:. git sparse
+$(LIB_USER_TOOL_DIR)/rump:
+	$(Q)$(cmd_gitrump)
 
-$(LIB_USER_TOOL_DIR)/rump-git-sparse:
-	$(call if_changed,gitrump)
-
+quiet_cmd_rumpconfh = GF	$@
+      cmd_rumpconfh = cd $(LIB_USER_TOOL_DIR)/$(RUMP_TOP)/lib/librumpuser/ ;\
+		      LDFLAGS= CFLAGS= ./configure
 $(RUMPUSER_CONF_H):
-	cd $(LIB_USER_TOOL_DIR)/$(RUMP_TOP)/lib/librumpuser/ && LDFLAGS= CFLAGS= ./configure
+	$(Q) $(cmd_rumpconfh)
 
 # rumpserver object compile: embed to libnuse-linux.so
 quiet_cmd_rumps = RUMPS		$@
@@ -91,3 +98,5 @@ quiet_cmd_hijack = RUMPHJ	$@
       cmd_hijack = $(CC) -shared $(RUMP_HIJACK_OBJ) $(RUMP_LDFLAGS) -o $@
 $(LIB_RUMP_HIJACK): $(RUMP_HIJACK_OBJ) $(LIB_RUMP_CLIENT) $(LIB_USER_TOOL_DIR)/Makefile.rump
 	$(call if_changed,hijack)
+
+.PHONY :  rump

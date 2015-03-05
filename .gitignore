@@ -13,3 +13,6 @@
 *.o.*
 git-sparse
 *.cmd
+libnuse-hijack.so
+librumpclient.so
+
