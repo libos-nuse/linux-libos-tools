@@ -6,13 +6,13 @@
  *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
  */
 
-#include <linux/init.h>         /* initcall_t */
-#include <linux/kernel.h>       /* SYSTEM_BOOTING */
-#include <linux/sched.h>        /* struct task_struct */
-#include <linux/device.h>
-#include <drivers/base/base.h>
-#include <include/linux/idr.h>
-#include <include/linux/rcupdate.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <asm/types.h>
+
 #include "sim-init.h"
 #include "sim.h"
 

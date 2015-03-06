@@ -1,67 +1,88 @@
+include Makefile.include
+include ../../../include/config/auto.conf
+#include Makefile.rump
+
 NUSE_LIB=liblinux-nuse-$(KERNELVERSION).so
 SIM_LIB=liblinux-sim-$(KERNELVERSION).so
-LIB_USER_TOOL_DIR=$(ARCH_DIR)/tools
+RUMP_HIJACK_LIB=libnuse-hijack.so
+RUMP_CLIENT_LIB=librumpclient.so
+RUMP_SERVER_LIB=librumpserver.so
+LIBOS_DIR=..
+srctree=$(LIBOS_DIR)/../../
 
--include $(LIB_USER_TOOL_DIR)/Makefile.rump
+CC=gcc
+
+all: $(NUSE_LIB) $(SIM_LIB) $(RUMP_HIJACK_LIB) $(RUMP_CLIENT_LIB)
+
+clean:
+	$(call QUIET_CLEAN, NUSE) rm -f *.o lib*.so
+	$(call QUIET_CLEAN, RUMP) $(MAKE) clean -s -f Makefile.rump
+#	$(MAKE) clean -f Makefile.dpdk
+
+ifdef CONFIG_LIB_NUSE_DPDK
+	echo "DPDK"
+endif
 
 # vif extensions
 NUSE_USPACE_SRC=""
 ifdef CONFIG_LIB_NUSE_DPDK
-	include $(LIB_USER_TOOL_DIR)/Makefile.dpdk
-	DPDK_LDFLAGS=-L$(RTE_SDK)/$(RTE_TARGET)/lib $(ARCH_DIR)/nuse-vif-dpdk.o $(DPDK_LDLIBS)
+	include Makefile.dpdk
+	DPDK_LDFLAGS=-L$(RTE_SDK)/$(RTE_TARGET)/lib nuse-vif-dpdk.o $(DPDK_LDLIBS)
 	NUSE_USPACE_SRC+=nuse-vif-dpdk.c
-	git submodule update dpdk --init
+	git submodule init
+	git submodule update dpdk
 endif
 
 ifdef CONFIG_LIB_NUSE_NETMAP
 	NUSE_USPACE_SRC+=nuse-vif-netmap.c
-	git submodule update netmap --init
+	git submodule init
+	git submodule update netmap
 endif
 
 #obj-$(CONFIG_LIB_NUSE_NETMAP)          += nuse-vif-netmap.o
 #obj-$(CONFIG_LIB_NUSE_DPDK)            += nuse-vif-dpdk.o
 
 # sources and objects
-NUSE_USPACE_SRC=\
+NUSE_SRC=\
 nuse-fiber.c nuse-vif.c nuse-hostcalls.c nuse-config.c \
 nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse-glue.c nuse.c
 
 SIM_SRC=sim.c
 
-SIM_OBJ=$(addprefix $(LIB_USER_TOOL_DIR)/,$(addsuffix .o,$(basename $(SIM_SRC))))
-NUSE_USPACE_OBJ=$(addprefix $(LIB_USER_TOOL_DIR)/,$(addsuffix .o,$(basename $(NUSE_USPACE_SRC))))
+SIM_OBJ=$(addsuffix .o,$(basename $(SIM_SRC)))
+NUSE_OBJ=$(addsuffix .o,$(basename $(NUSE_SRC)))
 
-ALL_OBJS+=$(SIM_OBJ) $(NUSE_USPACE_OBJ)
+ALL_OBJS+=$(SIM_OBJ) $(NUSE_OBJ)
 
 # build flags
-LDFLAGS_NUSE = -shared -nodefaultlibs -L$(srctree)/ -llinux -ldl -lpthread -lrt
-LDFLAGS_SIM = -shared -nodefaultlibs -L$(srctree)/ -llinux
+LDFLAGS_NUSE = -shared -nodefaultlibs -L. -lrumpserver -ldl -lpthread -lrt
+LDFLAGS_SIM = -shared -nodefaultlibs -L$(LIBOS_DIR)/../../ -llinux
+CFLAGS+= -fPIC -I. -I$(LIBOS_DIR)/include
+
+
+export CFLAGS srctree LIBOS_DIR
 
 # build target
+%.o : %.c
+	$(QUIET_CC) $(CC) $(CFLAGS) -c $<
 
-# XXX: no idea how to handle these exception cleanly..
-quiet_cmd_ccusp = CC   $@
-      cmd_ccusp = mkdir -p $(dir $@);	\
-		$(CC) $(CFLAGS_USPACE) -c $< -o $@
+# order of $(dpdkl_$(DPDK)) matters...
+$(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(RUMP_SERVER_LIB) $(KERNEL_LIB)
+	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(dpdkl_$(DPDK)) $(NUSE_OBJ) $(LDFLAGS_NUSE) -o $@ ;\
+	ln -s -f $(NUSE_LIB) liblinux-nuse.so ;\
+	ln -s -f ./nuse.sh ./nuse
 
-$(NUSE_USPACE_OBJ): %.o : %.c
-	$(call if_changed,ccusp)
+$(SIM_LIB): $(SIM_OBJ) $(KERNEL_LIB)
+	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(LDFLAGS) $(LDFLAGS_SIM) -o $@; \
+	ln -s -f $(SIM_LIB) liblinux-sim.so
 
-quiet_cmd_linknuse = LIBNUSE	$@
-      # order of $(dpdkl_$(DPDK)) matters...
-      cmd_linknuse = $(CC) -Wl,--whole-archive $(dpdkl_$(DPDK)) $(NUSE_USPACE_OBJ) $(RUMPS_OBJ) $(LDFLAGS_NUSE) -o $@; \
-		     ln -s -f $(NUSE_LIB) liblinux-nuse.so; \
-		     ln -s -f $(LIB_USER_TOOL_DIR)/nuse.sh ./nuse
+$(RUMP_CLIENT_LIB): Makefile.rump Makefile
+	@$(MAKE) $(PRINT_DIR) -f Makefile.rump $@
 
-quiet_cmd_linksim = LIBSIM	$@
-      cmd_linksim = $(CC) -Wl,--whole-archive $(SIM_OBJ) $(LDFLAGS) $(LDFLAGS_SIM) -o $@; \
-		    ln -s -f $(SIM_LIB) liblinux-sim.so
+$(RUMP_HIJACK_LIB): $(RUMP_CLIENT_LIB) Makefile.rump Makefile
+	@$(MAKE) $(PRINT_DIR) -f Makefile.rump $@
 
-$(NUSE_LIB):$(LIB_USER_TOOL_DIR)/rump $(DPDK_OBJ) $(NUSE_USPACE_OBJ) $(RUMPS_OBJ) $(KERNEL_LIB) $(ARCH_DIR)/linker.lds
-	$(call if_changed,linknuse)
+$(RUMP_SERVER_LIB): Makefile.rump Makefile
+	@$(MAKE) $(PRINT_DIR) -f Makefile.rump $@
 
-$(SIM_LIB): $(SIM_OBJ) $(KERNEL_LIB) $(ARCH_DIR)/linker.lds
-	$(call if_changed,linksim)
-
-%.o:%.c
-	$(call if_changed,cc)
+.PHONY: clean
