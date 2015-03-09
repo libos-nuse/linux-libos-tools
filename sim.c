@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <asm/types.h>
@@ -24,27 +25,16 @@ extern struct SimKernel *g_kernel;
 static int num_handler = 0;
 void *atexit_list[1024];
 
-extern struct SimDevice *lib_dev_create(char *ifname, void *priv,
-					enum SimDevFlags flags);
-
 extern void lib_init(struct SimExported *exported,
 		const struct SimImported *imported,
 		struct SimKernel *kernel);
-
-struct SimDevice *sim_dev_create_forwarder(char *ifname, void *priv,
-					   enum SimDevFlags flags)
-{
-	return lib_dev_create("sim%d", priv, flags);
-}
 
 void sim_init(struct SimExported *exported, const struct SimImported *imported,
 	      struct SimKernel *kernel)
 {
 	int i;
 
-	lib_init (exported, imported, kernel);
-	exported->dev_create = sim_dev_create_forwarder;
-
+	lib_init(exported, imported, kernel);
 	/* XXX handle atexit registration for gcov */
 	for (i = 0; i < 1024; i++) {
 		if (atexit_list[i]) {

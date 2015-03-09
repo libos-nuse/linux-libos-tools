@@ -51,12 +51,14 @@ SIM_SRC=sim.c
 
 SIM_OBJ=$(addsuffix .o,$(basename $(SIM_SRC)))
 NUSE_OBJ=$(addsuffix .o,$(basename $(NUSE_SRC)))
+# FIXME: possibly remove nuse-poll.c from $(ARCH_DIR)/Makefile and built in this Makefile
+KERNEL_OBJS_SIM=$(addprefix $(srctree)/, $(filter-out arch/lib/nuse-poll.o, $(OBJS)))
 
 ALL_OBJS+=$(SIM_OBJ) $(NUSE_OBJ)
 
 # build flags
 LDFLAGS_NUSE = -shared -nodefaultlibs -L. -lrumpserver -ldl -lpthread -lrt
-LDFLAGS_SIM = -shared -nodefaultlibs -L$(LIBOS_DIR)/../../ -llinux
+LDFLAGS_SIM = -shared -nodefaultlibs -g3 -Wl,-O1 -Wl,-T$(LIBOS_DIR)/linker.lds $(covl_$(COV))
 CFLAGS+= -fPIC -I. -I$(LIBOS_DIR)/include
 
 
@@ -67,13 +69,14 @@ export CFLAGS srctree LIBOS_DIR
 	$(QUIET_CC) $(CC) $(CFLAGS) -c $<
 
 # order of $(dpdkl_$(DPDK)) matters...
-$(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(RUMP_SERVER_LIB) $(KERNEL_LIB)
+$(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(RUMP_SERVER_LIB) $(srctree)/$(KERNEL_LIB) Makefile
 	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(dpdkl_$(DPDK)) $(NUSE_OBJ) $(LDFLAGS_NUSE) -o $@ ;\
 	ln -s -f $(NUSE_LIB) liblinux-nuse.so ;\
 	ln -s -f ./nuse.sh ./nuse
 
-$(SIM_LIB): $(SIM_OBJ) $(KERNEL_LIB)
-	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(LDFLAGS) $(LDFLAGS_SIM) -o $@; \
+
+$(SIM_LIB): $(SIM_OBJ) $(KERNEL_OBJS_SIM) Makefile
+	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(KERNEL_OBJS_SIM) $(LDFLAGS_SIM) -o $@; \
 	ln -s -f $(SIM_LIB) liblinux-sim.so
 
 $(RUMP_CLIENT_LIB): Makefile.rump Makefile
