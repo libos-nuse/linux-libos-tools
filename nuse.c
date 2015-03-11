@@ -305,6 +305,18 @@ void nuse_signal_raised(struct SimKernel *kernel, struct SimTask *task, int sig)
 }
 
 void
+nuse_poll_event(int flag, void *context)
+{
+	pthread_cond_t *condvar;
+	int ret;
+
+	condvar = (pthread_cond_t *)context;
+	ret = pthread_cond_signal(condvar);
+	if (ret != 0)
+		perror("pthread_cond_signal");
+}
+
+void
 nuse_netdev_lo_up(void)
 {
 	int err;
@@ -482,7 +494,7 @@ nuse_init(void)
 	imported->task_yield = NULL; /* not implemented */
 	imported->dev_xmit = nuse_dev_xmit;
 	imported->signal_raised = nuse_signal_raised;
-	imported->poll_event = NULL; /* not implemented */
+	imported->poll_event = nuse_poll_event;
 
 	g_exported = malloc(sizeof(struct SimExported));
 	lib_init (g_exported, imported, NULL);

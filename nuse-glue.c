@@ -21,6 +21,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <poll.h>
+#include <time.h>
+#include <pthread.h>
 
 #include "sim-assert.h"
 #include "nuse-hostcalls.h"
@@ -146,12 +148,9 @@ int nuse_sendmmsg(int fd, struct mmsghdr *msgvec, unsigned int vlen,
 {
 	int err, datagrams;
 	struct mmsghdr *entry;
-	struct compat_mmsghdr *compat_entry;
-	struct msghdr msg_sys;
 
 	datagrams = 0;
 	entry = msgvec;
-	compat_entry = (struct compat_mmsghdr *)msgvec;
 	err = 0;
 
 	while (datagrams < vlen) {
@@ -179,7 +178,7 @@ int nuse_getsockname(int fd, struct sockaddr *name, socklen_t *namelen)
 	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	int ret;
 
-	ret = g_exported->sock_getsockname(kernel_socket, name, namelen);
+	ret = g_exported->sock_getsockname(kernel_socket, name, (int *)namelen);
 	return ret;
 }
 weak_alias(nuse_getsockname, getsockname);
@@ -189,7 +188,7 @@ int nuse_getpeername(int fd, struct sockaddr *name, socklen_t *namelen)
 	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	int ret;
 
-	ret = g_exported->sock_getsockname(kernel_socket, name, namelen);
+	ret = g_exported->sock_getsockname(kernel_socket, name, (int *)namelen);
 	return ret;
 }
 weak_alias(nuse_getpeername, getpeername);
@@ -269,7 +268,8 @@ int nuse_accept4(int fd, struct sockaddr *addr, int *addrlen, int flags)
 }
 int nuse_accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	return nuse_accept4(fd, addr, addrlen, nuse_fd_table[fd].nuse_sock->flags);
+	return nuse_accept4(fd, addr, (int *)addrlen,
+			    nuse_fd_table[fd].nuse_sock->flags);
 }
 weak_alias(nuse_accept, accept);
 
@@ -419,7 +419,7 @@ int nuse_getsockopt(int fd, int level, int optname,
 {
 	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	int retval = g_exported->sock_getsockopt(kernel_socket, level, optname, optval,
-					 optlen);
+						 (int *)optlen);
 	if (retval < 0) {
 		errno = -retval;
 		return -1;
@@ -744,6 +744,101 @@ checkpoll(struct pollfd *fds, nfds_t nfds, int *hostcall, int *rumpcall)
 	}
 }
 
+struct poll_table_ref
+{
+  int ret;
+  void *opaque;
+};
+
+int
+nuse_poll(struct pollfd *fds, unsigned int nfds, struct timespec *end_time)
+{
+	struct poll_table_ref table, *current_table;
+	struct poll_table_ref null_table = {0};
+	int count = 0, error;
+	int i, mask, timed_out = 0;
+	pthread_cond_t condvar;
+	pthread_mutex_t cond_mutex;
+	struct timespec ts;
+
+	error = pthread_cond_init(&condvar, NULL);
+	lib_assert(error == 0);
+	error = pthread_mutex_init(&cond_mutex, NULL);
+	lib_assert(error == 0);
+
+	/* initialize all outgoing events. */
+	for (i = 0; i < nfds; ++i)
+		fds[i].revents = 0;
+
+	table.opaque = NULL;
+	current_table = &table;
+	if (end_time && end_time->tv_sec == 0 &&
+	    end_time->tv_nsec == 0) {
+		current_table = NULL;
+		timed_out = 1;
+	}
+
+	/* call (sim) kernel side */
+	for (;;) {
+		for (i = 0; i < nfds; ++i) {
+			struct SimSocket *sock;
+
+			/* host's fd */
+			if (fds[i].fd == -1)
+				continue;
+			if (!nuse_fd_table[fds[i].fd].nuse_sock)
+				continue;
+			/* nuse's fd */
+			sock = nuse_fd_table[fds[i].fd].nuse_sock->kern_sock;
+			if (current_table) {
+				current_table->ret = fds[i].events | POLLERR | POLLHUP;
+				current_table->opaque = &condvar;
+			}
+			else
+				current_table = &null_table;
+
+			g_exported->sock_poll((struct SimSocket *)sock, current_table);
+
+			mask = current_table->ret;
+			mask &= (fds[i].events | POLLERR | POLLHUP);
+			fds[i].revents = mask;
+			if (mask) {
+				count++;
+				current_table = NULL;
+			}
+		}
+
+		current_table = NULL;
+		if (count || timed_out) {
+			break;
+		}
+
+		if (timed_out == 0) {
+			/* infinite wait */
+			if (end_time == NULL) {
+				pthread_mutex_lock(&cond_mutex);
+				pthread_cond_wait(&condvar, &cond_mutex);
+				pthread_mutex_unlock(&cond_mutex);
+			}
+			/* sleeped wait */
+			else {
+				clock_gettime(CLOCK_REALTIME, &ts);
+				ts.tv_sec += end_time->tv_sec;
+				ts.tv_nsec += end_time->tv_nsec;
+				pthread_mutex_lock(&cond_mutex);
+				error = pthread_cond_timedwait(&condvar, &cond_mutex, &ts);
+				pthread_mutex_unlock(&cond_mutex);
+			}
+			timed_out = 1;
+		}
+	} /* for loop */
+
+	pthread_mutex_destroy(&cond_mutex);
+	pthread_cond_destroy(&condvar);
+	g_exported->sock_pollfreewait(table.opaque);
+	return count;
+}
+
 int
 poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
@@ -771,7 +866,6 @@ poll(struct pollfd *fds, nfds_t nfds, int timeout)
 			count = nuse_poll(fds, nfds, to);
 		}
 	}
-
 
 	return count;
 }
@@ -956,7 +1050,6 @@ epoll_wait(int epollfd, struct epoll_event *events,
 	if (!epfd)
 		return EBADF;
 
-	struct epoll_event *ev;
 	struct pollfd pollFd[maxevents];
 	int j = 0;
 

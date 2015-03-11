@@ -59,13 +59,13 @@ ALL_OBJS+=$(SIM_OBJ) $(NUSE_OBJ)
 # build flags
 LDFLAGS_NUSE = -shared -nodefaultlibs -L. -lrumpserver -ldl -lpthread -lrt
 LDFLAGS_SIM = -shared -nodefaultlibs -g3 -Wl,-O1 -Wl,-T$(LIBOS_DIR)/linker.lds $(covl_$(COV))
-CFLAGS+= -fPIC -I. -I$(LIBOS_DIR)/include
+CFLAGS+= -Wall -fPIC -g3 -I. -I$(LIBOS_DIR)/include
 
 
 export CFLAGS srctree LIBOS_DIR
 
 # build target
-%.o : %.c
+%.o : %.c Makefile
 	$(QUIET_CC) $(CC) $(CFLAGS) -c $<
 
 # order of $(dpdkl_$(DPDK)) matters...
@@ -74,18 +74,18 @@ $(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(RUMP_SERVER_LIB) $(srctree)/$(KERNEL_LIB)
 	ln -s -f $(NUSE_LIB) liblinux-nuse.so ;\
 	ln -s -f ./nuse.sh ./nuse
 
-
-$(SIM_LIB): $(SIM_OBJ) $(KERNEL_OBJS_SIM) Makefile
+$(SIM_LIB): $(SIM_OBJ) Makefile
 	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(KERNEL_OBJS_SIM) $(LDFLAGS_SIM) -o $@; \
 	ln -s -f $(SIM_LIB) liblinux-sim.so
 
-$(RUMP_CLIENT_LIB): Makefile.rump Makefile
-	@$(MAKE) $(PRINT_DIR) -f Makefile.rump $@
+$(RUMP_CLIENT_LIB): Makefile.rump Makefile FORCE
+	$(Q) $(MAKE) $(PRINT_DIR) -f Makefile.rump $@
 
-$(RUMP_HIJACK_LIB): $(RUMP_CLIENT_LIB) Makefile.rump Makefile
-	@$(MAKE) $(PRINT_DIR) -f Makefile.rump $@
+$(RUMP_HIJACK_LIB): $(RUMP_CLIENT_LIB) Makefile.rump Makefile FORCE
+	$(Q) $(MAKE) $(PRINT_DIR) -f Makefile.rump $@
 
-$(RUMP_SERVER_LIB): Makefile.rump Makefile
-	@$(MAKE) $(PRINT_DIR) -f Makefile.rump $@
+$(RUMP_SERVER_LIB): Makefile.rump Makefile FORCE
+	$(Q) $(MAKE) $(PRINT_DIR) -f Makefile.rump $@
 
-.PHONY: clean
+FORCH:
+.PHONY: clean FORCE

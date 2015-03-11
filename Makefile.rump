@@ -72,12 +72,12 @@ $(RUMPUSER_CONF_H): $(RUMP_TOP)
 
 
 #### rumpserver object compile: embed to liblinux-nuse.so
-$(RUMP_OBJ): %.o : %.c $(RUMPUSER_CONF_H) Makefile.rump
-	$(QUIET_CC) $(CC) $(CFLAGS) $(RUMP_CFLAGS) -DHOSTOPS -c $< -o $@
 $(RUMP_NUSE_OBJ): %.o : %.c $(RUMPUSER_CONF_H) Makefile.rump
 	$(QUIET_CC) $(CC) $(CFLAGS) $(RUMP_CFLAGS) \
 	-I$(srctree)/include -DHOSTOPS -c $< -o $@
-librumpserver.so: $(RUMP_TOP) $(RUMPS_OBJ) Makefile.rump Makefile
+$(RUMP_OBJ): %.o : %.c $(RUMPUSER_CONF_H) Makefile.rump
+	$(QUIET_CC) $(CC) $(CFLAGS) $(RUMP_CFLAGS) -DHOSTOPS -c $< -o $@
+librumpserver.so: $(RUMP_TOP) $(RUMP_OBJ) $(RUMP_NUSE_OBJ) Makefile.rump Makefile
 	$(QUIET_LINK) $(CC) -shared $(RUMPS_OBJ) -o $@
 
 

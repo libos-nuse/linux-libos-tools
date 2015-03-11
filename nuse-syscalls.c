@@ -89,13 +89,13 @@ int nuse_sendmmsg(int fd, struct mmsghdr *msgvec, unsigned int vlen,
 		unsigned int flags);
 int nuse_recvmmsg(int fd, struct mmsghdr *msgvec, unsigned int vlen,
 		  unsigned int flags, struct timespec *timeout);
-int nuse_getsockname(int fd, struct sockaddr *name, int *namelen);
-int nuse_getpeername(int fd, struct sockaddr *name, int *namelen);
+int nuse_getsockname(int fd, struct sockaddr *name, socklen_t *namelen);
+int nuse_getpeername(int fd, struct sockaddr *name, socklen_t *namelen);
 int nuse_bind(int fd, struct sockaddr *name, int namelen);
 int nuse_connect(int fd, const struct sockaddr *v1, int v2);
 int nuse_listen(int fd, int v1);
 int nuse_accept4(int fd, struct sockaddr *addr, int *addrlen, int flags);
-int nuse_accept(int fd, struct sockaddr *addr, int *addrlen);
+int nuse_accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
 ssize_t nuse_write(int fd, const void *buf, size_t count);
 ssize_t nuse_writev(int fd, const struct iovec *iov, size_t count);
 ssize_t nuse_sendto(int fd, const void *buf, size_t len, int flags,
@@ -103,12 +103,12 @@ ssize_t nuse_sendto(int fd, const void *buf, size_t len, int flags,
 ssize_t nuse_send(int fd, const void *buf, size_t len, int flags);
 ssize_t nuse_read(int fd, void *buf, size_t count);
 ssize_t nuse_recvfrom(int fd, void *buf, size_t len, int flags,
-		struct sockaddr *from, int *fromlen);
+		struct sockaddr *from, socklen_t *fromlen);
 int nuse_recv(int fd, void *buf, size_t count, int flags);
 int nuse_setsockopt(int fd, int level, int optname,
 		const void *optval, int optlen);
 int nuse_getsockopt(int fd, int level, int optname,
-		void *optval, int *optlen);
+		void *optval, unsigned int *optlen);
 int open(const char *pathname, int flags, mode_t mode);
 int open64(const char *pathname, int flags, mode_t mode);
 int nuse_ioctl(int fd, int request, ...);
@@ -225,7 +225,6 @@ static int sys_listen(struct lwp *l, const struct sys_listen_args *uap,
 		syscallarg(int)	s;
 		syscallarg(int)	backlog;
 	} */
-	struct socket	*so;
 	int		error;
 
 	error = nuse_listen(SCARG(uap, s), SCARG(uap, backlog));
@@ -241,8 +240,7 @@ static int sys_accept(struct lwp *l, const struct sys_accept_args *uap,
 		syscallarg(struct sockaddr *)	name;
 		syscallarg(unsigned int *)	anamelen;
 	} */
-	int error, fd;
-	struct mbuf *name;
+	int error;
 
 	error = nuse_accept(SCARG(uap, s), SCARG(uap, name),
 			SCARG(uap, anamelen));
@@ -424,17 +422,13 @@ static int sys_recvmsg(struct lwp *l, const struct sys_recvmsg_args *uap,
 		syscallarg(int)			flags;
 	} */
 	int error, iovsz, i;
-	struct sockaddr *data;
 	struct user_msghdr msg;
 	struct iovec *liov, *riov;
-	void *rmsg_name, *rmsg_control;
 
 	error = nuse_copyin(SCARG(uap, msg), &msg, sizeof(msg));
 	if (error)
 		return error;
 	iovsz = msg.msg_iovlen * sizeof(struct iovec);
-	rmsg_name = msg.msg_name;
-	rmsg_control = msg.msg_control;
 	liov = malloc(iovsz);
 	riov = malloc(iovsz);
 	msg.msg_name = malloc(msg.msg_namelen);
@@ -589,7 +583,7 @@ static int sys_getsockopt(struct lwp *l, const struct sys_getsockopt_args *uap,
 		syscallarg(void *)		val;
 		syscallarg(unsigned int *)	avalsize;
 	} */
-	int error, len;
+	int error;
 	unsigned int valsize;
 	void *data = NULL;
 
@@ -631,8 +625,8 @@ static int sys_getsockname(struct lwp *l, const struct sys_getsockname_args *uap
 		syscallarg(struct sockaddr *)	asa;
 		syscallarg(unsigned int *)	alen;
 	} */
-	int error, len;
-	int valsize;
+	int error;
+	socklen_t valsize;
 	struct sockaddr *data;
 
 	if (SCARG(uap, asa) != NULL) {
@@ -820,7 +814,6 @@ static const struct rumpuser_hyperup nuse_hyp = {
 void
 nuse_syscall_proxy_init(void)
 {
-	int ret, len;
 	char *url;
 	char buf[64];
 
@@ -842,7 +835,6 @@ nuse_syscall_proxy_init(void)
 void
 nuse_syscall_proxy_exit(void)
 {
-	char path[256];
 	rumpuser_dprintf("rump_server finishing.\n");
 	rumpuser_sp_fini(NULL);
 }

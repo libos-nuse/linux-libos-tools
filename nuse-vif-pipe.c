@@ -67,7 +67,7 @@ nuse_vif_pipe_write(struct nuse_vif *vif, struct SimDevice *dev,
 void *
 nuse_vif_pipe_create(const char *pipepath)
 {
-	int sock, n;
+	int sock;
 	struct nuse_vif *vif;
 
 	sock = named_pipe_alloc(pipepath);
