@@ -7,6 +7,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include <string.h>
 #include <stdint.h>
@@ -501,6 +502,8 @@ nuse_init(void)
 
 	/* loopback IFF_UP * / */
 	nuse_netdev_lo_up();
+
+	srand(time(NULL)); /* for mac address randomization */
 
 	/* read and parse a config file */
 	config = host_getenv("NUSECONF");
