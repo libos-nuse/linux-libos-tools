@@ -25,11 +25,11 @@ nuse_vif_read(struct nuse_vif *vif, struct SimDevice *dev)
 
 void
 nuse_vif_write(struct nuse_vif *vif, struct SimDevice *dev,
-	       unsigned char *data, int len)
+	       unsigned char *data, int len, unsigned int flags)
 {
 	struct nuse_vif_impl *impl = nuse_vif[vif->type];
 
-	return impl->write(vif, dev, data, len);
+	return impl->write(vif, dev, data, len, flags);
 }
 
 static int

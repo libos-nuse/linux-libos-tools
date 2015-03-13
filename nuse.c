@@ -286,11 +286,11 @@ nuse_dev_rx(struct SimDevice *dev, char *buf, int size)
 
 void
 nuse_dev_xmit(struct SimKernel *kernel, struct SimDevice *dev,
-	unsigned char *data, int len)
+	      unsigned char *data, int len, unsigned int flags)
 {
 	struct nuse_vif *vif = g_exported->dev_get_private(dev);
 
-	nuse_vif_write(vif, dev, data, len);
+	nuse_vif_write(vif, dev, data, len, flags);
 	lib_softirq_wakeup();
 }
 

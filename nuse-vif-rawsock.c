@@ -49,7 +49,7 @@ nuse_vif_raw_read(struct nuse_vif *vif, struct SimDevice *dev)
 
 void
 nuse_vif_raw_write(struct nuse_vif *vif, struct SimDevice *dev,
-		   unsigned char *data, int len)
+		   unsigned char *data, int len, unsigned int flags)
 {
 	int sock = vif->sock;
 	int ret = host_write(sock, data, len);

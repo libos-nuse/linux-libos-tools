@@ -21,7 +21,7 @@ struct nuse_vif {
 struct nuse_vif_impl {
 	void (*read)(struct nuse_vif *, struct SimDevice *);
 	void (*write)(struct nuse_vif *, struct SimDevice *,
-		unsigned char *, int);
+		      unsigned char *, int, unsigned int);
 	void *(*create)(const char *);
 	void (*delete)(struct nuse_vif *);
 };
@@ -37,6 +37,6 @@ typedef int (*initcall_t)(void);
 void *nuse_vif_create(enum viftype type, const char *ifname);
 void nuse_vif_read(struct nuse_vif *vif, struct SimDevice *dev);
 void nuse_vif_write(struct nuse_vif *vif, struct SimDevice *dev,
-		    unsigned char *data, int len);
+		    unsigned char *data, int len, unsigned int flags);
 
 #endif /* NUSE_VIF_H */

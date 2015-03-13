@@ -102,7 +102,7 @@ nuse_vif_tap_read(struct nuse_vif *vif, struct SimDevice *dev)
 
 void
 nuse_vif_tap_write(struct nuse_vif *vif, struct SimDevice *dev,
-		   unsigned char *data, int len)
+		   unsigned char *data, int len, uint32_t flags)
 {
 	int sock = vif->sock;
 	int ret = host_write(sock, data, len);

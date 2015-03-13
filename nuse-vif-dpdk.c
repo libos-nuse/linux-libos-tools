@@ -154,7 +154,7 @@ nuse_vif_dpdk_read(struct nuse_vif *vif, struct SimDevice *dev)
 
 void
 nuse_vif_dpdk_write(struct nuse_vif *vif, struct SimDevice *dev,
-		    unsigned char *data, int len)
+		    unsigned char *data, int len, unsigned int flags)
 {
 	void *pkt;
 	struct rte_mbuf *rm;

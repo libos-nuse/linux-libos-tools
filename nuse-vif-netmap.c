@@ -165,7 +165,7 @@ nuse_vif_netmap_read(struct nuse_vif *vif, struct SimDevice *dev)
 
 void
 nuse_vif_netmap_write(struct nuse_vif *vif, struct SimDevice *dev,
-		      unsigned char *data, int len)
+		      unsigned char *data, int len, unsigned int flags)
 {
 	int n;
 	uint32_t m, cur, size;
@@ -188,7 +188,8 @@ nuse_vif_netmap_write(struct nuse_vif *vif, struct SimDevice *dev,
 	cur = nm_ring_next(ring, cur);
 	ring->head = ring->cur = cur;
 
-	ioctl(netmap->fd, NIOCTXSYNC, NULL);
+	if (!flags)
+		ioctl(netmap->fd, NIOCTXSYNC, NULL);
 }
 
 void *
