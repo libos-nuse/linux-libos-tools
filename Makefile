@@ -2,8 +2,8 @@ include Makefile.include
 include ../../../include/config/auto.conf
 #include Makefile.rump
 
-NUSE_LIB=liblinux-nuse-$(KERNELVERSION).so
-SIM_LIB=liblinux-sim-$(KERNELVERSION).so
+NUSE_LIB=libnuse-linux-$(KERNELVERSION).so
+SIM_LIB=libsim-linux-$(KERNELVERSION).so
 RUMP_HIJACK_LIB=libnuse-hijack.so
 RUMP_CLIENT_LIB=librumpclient.so
 RUMP_SERVER_LIB=librumpserver.so
@@ -71,7 +71,7 @@ export CFLAGS srctree LIBOS_DIR
 # order of $(dpdkl_$(DPDK)) matters...
 $(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(RUMP_SERVER_LIB) $(srctree)/$(KERNEL_LIB) Makefile
 	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(dpdkl_$(DPDK)) $(NUSE_OBJ) $(LDFLAGS_NUSE) -o $@ ;\
-	ln -s -f $(NUSE_LIB) liblinux-nuse.so ;\
+	ln -s -f $(NUSE_LIB) libnuse-linux.so ;\
 	ln -s -f ./nuse.sh ./nuse
 
 $(SIM_LIB): $(SIM_OBJ) Makefile
