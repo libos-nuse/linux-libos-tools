@@ -73,7 +73,7 @@
         <attribute name="supported_os" value="linux;linux2"/>
         <!-- assume the bake.py build is executed under arch/sim/test/buildtop/ -->
         <attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --with-libaspect=$INSTALLDIR --enable-kernel-stack=$SRCDIR/../../../../../../arch/"/>
-         <attribute name="post_installation" value="mkdir -p $INSTALLDIR/bin_dce; cd $INSTALLDIR/bin_dce ; ln -s -f $SRCDIR/../../../../../../arch/lib/libsim-linux.so liblinux.so"/>
+         <attribute name="post_installation" value="mkdir -p $INSTALLDIR/bin_dce; cd $INSTALLDIR/bin_dce ; ln -s -f $SRCDIR/../../../../../../arch/lib/tools/libsim-linux.so liblinux.so"/>
       </build>
     </module>
 
