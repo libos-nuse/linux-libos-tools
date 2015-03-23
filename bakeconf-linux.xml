@@ -65,6 +65,7 @@
       <source type="mercurial">
         <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
         <attribute name="module_directory" value="ns-3-dce"/>
+        <attribute name="revision" value="6ba0c0fe67b7"/>
       </source>
       <depends_on name="dce-meta-1.5" optional="False"/>
       <depends_on name="iproute2-dev" optional="False"/>
