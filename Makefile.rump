@@ -100,3 +100,4 @@ clean:
 	$(RUMP_HIJACK_OBJ) $(RUMP_OBJ) git-sparse $(RUMPUSER_CONF_H)
 
 .PHONY: clean
+.NOTPARALLEL :
