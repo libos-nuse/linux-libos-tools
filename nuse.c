@@ -272,11 +272,13 @@ nuse_netdev_rx_trampoline(void *context)
 void
 nuse_dev_rx(struct SimDevice *dev, char *buf, int size)
 {
+#ifdef DEBUG
 	struct ethhdr {
 		unsigned char h_dest[6];
 		unsigned char h_source[6];
 		uint16_t h_proto;
 	} *hdr = (struct ethhdr *)buf;
+#endif
 
 	struct SimDevicePacket packet = g_exported->dev_create_packet(dev, size);
 	/* XXX: FIXME should not copy */

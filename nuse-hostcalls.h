@@ -47,7 +47,7 @@ extern size_t (*host_fwrite)(const void *ptr, size_t size, size_t nmemb,
 extern int (*host_access)(const char *pathname, int mode);
 extern int (*host_listen)(int sockfd, int backlog);
 extern int (*host_accept)(int sockfd, struct sockaddr *addr,
-			int *addrlen);
+			socklen_t *addrlen);
 extern int (*host_getsockopt)(int sockfd, int level, int optname,
 			void *optval, int *optlen);
 extern int (*host_setsockopt)(int sockfd, int level, int optname,

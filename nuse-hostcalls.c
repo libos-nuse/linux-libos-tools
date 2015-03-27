@@ -41,7 +41,8 @@ size_t (*host_fwrite)(const void *ptr, size_t size, size_t nmemb,
 int (*host_access)(const char *pathname, int mode) = NULL;
 int (*host_pipe)(int pipefd[2]) = NULL;
 int (*host_listen)(int sockfd, int backlog) = NULL;
-int (*host_accept)(int sockfd, struct sockaddr *addr, int *addrlen) = NULL;
+int (*host_accept)(int sockfd, struct sockaddr *addr,
+		   socklen_t *addrlen) = NULL;
 int (*host_getsockopt)(int sockfd, int level, int optname,
 		void *optval, int *optlen) = NULL;
 int (*host_setsockopt)(int sockfd, int level, int optname,

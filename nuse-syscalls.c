@@ -789,12 +789,6 @@ static struct lwp *nuse_lwproc_curlwp(void){return NULL;}
 static void nuse_hyp_lwpexit(void){}
 static void nuse_hyp_execnotify(const char *comm){}
 
-static int
-nuse_syscalls_unimplemented(void)
-{
-	return 0;
-}
-
 static const struct rumpuser_hyperup nuse_hyp = {
 	.hyp_schedule		= nuse_schedule,
 	.hyp_unschedule		= nuse_unschedule,
