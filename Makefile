@@ -1,9 +1,10 @@
 include Makefile.include
-include ../../../include/config/auto.conf
+-include ../../../include/config/auto.conf
 #include Makefile.rump
 
 NUSE_LIB=libnuse-linux-$(KERNELVERSION).so
 SIM_LIB=libsim-linux-$(KERNELVERSION).so
+KERNEL_LIB=liblinux-$(KERNELVERSION).so
 RUMP_HIJACK_LIB=libnuse-hijack.so
 RUMP_CLIENT_LIB=librumpclient.so
 RUMP_SERVER_LIB=librumpserver.so
@@ -74,7 +75,7 @@ $(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(RUMP_SERVER_LIB) $(srctree)/$(KERNEL_LIB)
 	ln -s -f $(NUSE_LIB) libnuse-linux.so ;\
 	ln -s -f ./nuse.sh ./nuse
 
-$(SIM_LIB): $(SIM_OBJ) Makefile
+$(SIM_LIB): $(SIM_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
 	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(KERNEL_OBJS_SIM) $(LDFLAGS_SIM) -o $@; \
 	ln -s -f $(SIM_LIB) libsim-linux.so
 
