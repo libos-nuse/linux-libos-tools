@@ -7,7 +7,7 @@
  * Note: some of the code is picked from rumpkernel, written by Antti Kantee.
  */
 
-#include <linux/unistd.h>
+#include <unistd.h>
 #include <linux/types.h>
 #include <stdio.h>
 #include <sys/types.h>
