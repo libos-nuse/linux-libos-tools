@@ -1,6 +1,4 @@
 include Makefile.include
--include ../../../include/config/auto.conf
-#include Makefile.rump
 
 NUSE_LIB=libnuse-linux-$(KERNELVERSION).so
 SIM_LIB=libsim-linux-$(KERNELVERSION).so
@@ -20,33 +18,38 @@ clean:
 	$(call QUIET_CLEAN, RUMP) $(MAKE) clean -s -f Makefile.rump
 #	$(MAKE) clean -f Makefile.dpdk
 
-ifdef CONFIG_LIB_NUSE_DPDK
-	echo "DPDK"
-endif
-
 # vif extensions
-NUSE_USPACE_SRC=""
-ifdef CONFIG_LIB_NUSE_DPDK
-	include Makefile.dpdk
-	DPDK_LDFLAGS=-L$(RTE_SDK)/$(RTE_TARGET)/lib nuse-vif-dpdk.o $(DPDK_LDLIBS)
-	NUSE_USPACE_SRC+=nuse-vif-dpdk.c
-	git submodule init
-	git submodule update dpdk
+NUSE_SRC=""
+
+NETMAP?=no
+DPDK?=no
+
+dpdk:
+ifeq ($(DPDK), yes)
+	$(QUIET_GEN) git submodule init && git submodule update dpdk
 endif
 
-ifdef CONFIG_LIB_NUSE_NETMAP
-	NUSE_USPACE_SRC+=nuse-vif-netmap.c
-	git submodule init
-	git submodule update netmap
+netmap:
+ifeq ($(NETMAP), yes)
+	$(QUIET_GEN) git submodule init && git submodule update netmap
 endif
-
-#obj-$(CONFIG_LIB_NUSE_NETMAP)          += nuse-vif-netmap.o
-#obj-$(CONFIG_LIB_NUSE_DPDK)            += nuse-vif-dpdk.o
 
 # sources and objects
 NUSE_SRC=\
 nuse-fiber.c nuse-vif.c nuse-hostcalls.c nuse-config.c \
 nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse-glue.c nuse.c
+
+ifeq "$(DPDK)" "yes"
+	include Makefile.dpdk
+	DPDK_LDFLAGS=-L$(RTE_SDK)/$(RTE_TARGET)/lib nuse-vif-dpdk.o $(DPDK_LDLIBS)
+	NUSE_SRC+=nuse-vif-dpdk.c
+endif
+
+ifeq "$(NETMAP)" "yes"
+	NUSE_SRC+=nuse-vif-netmap.c
+	CFLAGS+= -Inetmap/sys
+endif
+
 
 SIM_SRC=sim.c
 
@@ -66,7 +69,7 @@ CFLAGS+= -Wall -fPIC -g3 -I. -I$(LIBOS_DIR)/include
 export CFLAGS srctree LIBOS_DIR
 
 # build target
-%.o : %.c Makefile
+%.o : %.c Makefile netmap
 	$(QUIET_CC) $(CC) $(CFLAGS) -c $<
 
 # order of $(dpdkl_$(DPDK)) matters...
@@ -89,5 +92,5 @@ $(RUMP_SERVER_LIB): Makefile.rump Makefile FORCE
 	$(Q) $(MAKE) $(PRINT_DIR) -f Makefile.rump $@
 
 FORCH:
-.PHONY: clean FORCE
+.PHONY: clean FORCE netmap
 .NOTPARALLEL : $(RUMP_SERVER_LIB) $(RUMP_CLIENT_LIB) $(RUMP_HIJACK_LIB)
