@@ -1,4 +1,7 @@
-DPDK_OBJ=$(addprefix $(ARCH_DIR)/,$(addsuffix .o,$(basename $(dpdk_$(DPDK)))))
+include Makefile.include
+
+DPDK_SRC=nuse-vif-dpdk.c
+DPDK_OBJ=$(addsuffix .o,$(basename $(DPDK_SRC)))
 RTE_SDK=$(shell expr `pwd`)/dpdk
 RTE_TARGET=build
 
@@ -15,13 +18,10 @@ DPDK_LDLIBS += -lrte_pmd_virtio_uio -lrte_pmd_vmxnet3_uio -lrte_pmd_ixgbe \
           -lrte_mbuf -lethdev \
           -lrte_eal -lrte_mempool -lrte_ring -lrte_pmd_ring -lrte_malloc
 
-quiet_cmd_vif_dpdk = VIF-DPDK $@
-      cmd_vif_dpdk = \
-		    $(CC) $(CFLAGS_USPACE) -m64 -pthread -march=native $(DPDK_CFLAGS) -c $^ -o $@
+dpdkl_yes=$(DPDK_OBJ) $(DPDK_LDLIBS)
+dpdkl_no=
 
-$(ARCH_DIR)/nuse-vif-dpdk.o: $(ARCH_DIR)/nuse-vif-dpdk.c
+nuse-vif-dpdk.o: nuse-vif-dpdk.c Makefile.dpdk
 ifeq ($(DPDK), yes)
-	$(call if_changed,vif_dpdk)
-else
-	@echo -n ""
+	$(QUIET_CC) $(CC) $(CFLAGS) -m64 -pthread -march=native $(DPDK_CFLAGS) -c $< -o $@
 endif

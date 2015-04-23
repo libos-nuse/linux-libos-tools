@@ -14,9 +14,8 @@ CC=gcc
 all: $(NUSE_LIB) $(SIM_LIB) $(RUMP_HIJACK_LIB) $(RUMP_CLIENT_LIB)
 
 clean:
-	$(call QUIET_CLEAN, NUSE) rm -f *.o lib*.so
-	$(call QUIET_CLEAN, RUMP) $(MAKE) clean -s -f Makefile.rump
-#	$(MAKE) clean -f Makefile.dpdk
+	$(call QUIET_CLEAN, nuse) rm -f *.o lib*.so
+	$(call QUIET_CLEAN, rump) $(MAKE) clean -s -f Makefile.rump
 
 # vif extensions
 NUSE_SRC=""
@@ -24,9 +23,10 @@ NUSE_SRC=""
 NETMAP?=no
 DPDK?=no
 
-dpdk:
+dpdk/build/lib/libintel_dpdk.a:
 ifeq ($(DPDK), yes)
 	$(QUIET_GEN) git submodule init && git submodule update dpdk
+	$(error "Execute the DPDK build script 'dpdk-sdk-build.sh' at the arch/lib/tools directory")
 endif
 
 netmap:
@@ -41,8 +41,7 @@ nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse-glue.c nuse.c
 
 ifeq "$(DPDK)" "yes"
 	include Makefile.dpdk
-	DPDK_LDFLAGS=-L$(RTE_SDK)/$(RTE_TARGET)/lib nuse-vif-dpdk.o $(DPDK_LDLIBS)
-	NUSE_SRC+=nuse-vif-dpdk.c
+	DPDK_LDFLAGS=-L$(RTE_SDK)/$(RTE_TARGET)/lib
 endif
 
 ifeq "$(NETMAP)" "yes"
@@ -55,21 +54,16 @@ SIM_SRC=sim.c
 
 SIM_OBJ=$(addsuffix .o,$(basename $(SIM_SRC)))
 NUSE_OBJ=$(addsuffix .o,$(basename $(NUSE_SRC)))
-# FIXME: possibly remove nuse-poll.c from $(ARCH_DIR)/Makefile and built in this Makefile
-KERNEL_OBJS_SIM=$(addprefix $(srctree)/, $(filter-out arch/lib/nuse-poll.o, $(OBJS)))
-
 ALL_OBJS+=$(SIM_OBJ) $(NUSE_OBJ)
 
 # build flags
-LDFLAGS_NUSE = -shared -nodefaultlibs -L. -lrumpserver -ldl -lpthread -lrt
+LDFLAGS_NUSE = -shared -nodefaultlibs -L. -lrumpserver -ldl -lpthread -lrt $(DPDK_LDFLAGS)
 LDFLAGS_SIM = -shared -nodefaultlibs -g3 -Wl,-O1 -Wl,-T$(LIBOS_DIR)/linker.lds $(covl_$(COV))
 CFLAGS+= -Wall -fPIC -g3 -I. -I$(LIBOS_DIR)/include
-
-
 export CFLAGS srctree LIBOS_DIR
 
 # build target
-%.o : %.c Makefile netmap
+%.o : %.c Makefile netmap dpdk/build/lib/libintel_dpdk.a
 	$(QUIET_CC) $(CC) $(CFLAGS) -c $<
 
 # order of $(dpdkl_$(DPDK)) matters...
@@ -92,5 +86,5 @@ $(RUMP_SERVER_LIB): Makefile.rump Makefile FORCE
 	$(Q) $(MAKE) $(PRINT_DIR) -f Makefile.rump $@
 
 FORCH:
-.PHONY: clean FORCE netmap
+.PHONY: clean FORCE
 .NOTPARALLEL : $(RUMP_SERVER_LIB) $(RUMP_CLIENT_LIB) $(RUMP_HIJACK_LIB)
