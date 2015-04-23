@@ -100,7 +100,7 @@ void
 nuse_vif_netmap_read(struct nuse_vif *vif, struct SimDevice *dev)
 {
 	int n;
-	uint32_t burst, m, rx, cur, size;
+	uint32_t m, rx, cur, size;
 	struct pollfd x[1];
 	struct netmap_slot *rs;
 	struct netmap_ring *ring;
@@ -167,8 +167,7 @@ void
 nuse_vif_netmap_write(struct nuse_vif *vif, struct SimDevice *dev,
 		      unsigned char *data, int len)
 {
-	int n;
-	uint32_t m, cur, size;
+	uint32_t cur;
 	struct netmap_slot *ts;
 	struct netmap_ring *ring;
 	struct nuse_vif_netmap *netmap = vif->private;
