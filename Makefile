@@ -54,6 +54,7 @@ SIM_SRC=sim.c
 
 SIM_OBJ=$(addsuffix .o,$(basename $(SIM_SRC)))
 NUSE_OBJ=$(addsuffix .o,$(basename $(NUSE_SRC)))
+KERNEL_OBJS_SIM=$(addprefix $(srctree)/, $(OBJS))
 ALL_OBJS+=$(SIM_OBJ) $(NUSE_OBJ)
 
 # build flags
