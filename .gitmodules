@@ -7,3 +7,4 @@
 [submodule "dpdk"]
 	path = dpdk
 	url = git://dpdk.org/dpdk
+	ignore = dirty

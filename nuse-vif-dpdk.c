@@ -164,7 +164,7 @@ nuse_vif_dpdk_write(struct nuse_vif *vif, struct SimDevice *dev,
 	pkt = rte_pktmbuf_append(rm, len);
 	memcpy(pkt, data, len);
 
-	uint16_t ret = rte_eth_tx_burst(PORTID, 0, &rm, 1);
+	rte_eth_tx_burst(PORTID, 0, &rm, 1);
 	/* XXX: should be bursted !! */
 }
 
