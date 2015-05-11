@@ -65,7 +65,7 @@ CFLAGS+= -Wall -fPIC -g3 -I. -I$(LIBOS_DIR)/include
 export CFLAGS srctree LIBOS_DIR
 
 # build target
-%.o : %.c Makefile netmap dpdk/build/lib/libintel_dpdk.a
+%.o : %.c Makefile
 	$(QUIET_CC) $(CC) $(CFLAGS) -c $<
 
 # order of $(dpdkl_$(DPDK)) matters...
