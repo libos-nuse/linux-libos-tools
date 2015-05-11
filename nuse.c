@@ -384,7 +384,7 @@ nuse_netdev_create(struct nuse_vif_config *vifcf)
 		vifcf->mac[0] &= 0xfe;	/* clear multicast bit */
 		vifcf->mac[0] |= 0x02;	/* set local assignment bit (IEEE802) */
 
-		printf("mac address for %s is randomized ", vifcf->ifname);
+		printf("  mac address for %s is randomized ", vifcf->ifname);
 		printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
 		       vifcf->mac[0], vifcf->mac[1], vifcf->mac[2],
 		       vifcf->mac[3], vifcf->mac[4], vifcf->mac[5]);
