@@ -35,10 +35,7 @@ ifeq ($(NETMAP), yes)
 endif
 
 # sources and objects
-NUSE_SRC=\
-nuse-fiber.c nuse-vif.c nuse-hostcalls.c nuse-config.c \
-nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse-glue.c nuse.c
-
+NUSE_SRC=
 ifeq "$(DPDK)" "yes"
 	include Makefile.dpdk
 	DPDK_LDFLAGS=-L$(RTE_SDK)/$(RTE_TARGET)/lib
@@ -48,6 +45,10 @@ ifeq "$(NETMAP)" "yes"
 	NUSE_SRC+=nuse-vif-netmap.c
 	CFLAGS+= -Inetmap/sys
 endif
+
+NUSE_SRC+=\
+nuse-fiber.c nuse-vif.c nuse-hostcalls.c nuse-config.c \
+nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse-glue.c nuse.c
 
 
 SIM_SRC=sim.c

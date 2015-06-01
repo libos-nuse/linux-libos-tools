@@ -63,7 +63,7 @@ netmap_get_nifp(const char *ifname, struct netmap_if **_nifp)
 
 	fd = open("/dev/netmap", O_RDWR);
 	if (fd < 0) {
-		printf("unable to open /dev/netmap");
+		printf("unable to open /dev/netmap\n");
 		return 0;
 	}
 
@@ -74,7 +74,7 @@ netmap_get_nifp(const char *ifname, struct netmap_if **_nifp)
 	nmr.nr_flags |= NR_REG_ALL_NIC;
 
 	if (ioctl(fd, NIOCREGIF, &nmr) < 0) {
-		printf("unable to register interface %s", ifname);
+		printf("unable to register interface %s\n", ifname);
 		return 0;
 	}
 
@@ -86,7 +86,7 @@ netmap_get_nifp(const char *ifname, struct netmap_if **_nifp)
 	mem = mmap(NULL, nmr.nr_memsize,
 		   PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (mem == MAP_FAILED) {
-		printf("unable to mmap");
+		printf("unable to mmap\n");
 		return 0;
 	}
 
