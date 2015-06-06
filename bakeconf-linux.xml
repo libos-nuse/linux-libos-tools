@@ -320,7 +320,7 @@
          <attribute name="LDFLAGS" value="-pie"/>
          <attribute name="ignore_predefined_flags" value="True"/>
          <attribute name="install_arguments" value="DESTDIR=$INSTALLDIR" />
-         <attribute name="build_arguments" value="DEFINES+=-I$SRCDIR/../../../../../../arch/lib/include/ DEFINES+=-I$SRCDIR/../../../../../../include/uapi/ DEFINES+=-I$SRCDIR/../../../../../../include CCOPTS+=-fpic CCOPTS+=-D_GNU_SOURCE CCOPTS+=-O0 CCOPTS+=-U_FORTIFY_SOURCE CCOPTS+=-g LDFLAGS=-pie LDFLAGS+=-rdynamic"/>
+         <attribute name="build_arguments" value="DEFINES+=-I$SRCDIR/../../../../../../arch/lib/include/ DEFINES+=-I$SRCDIR/../../../../../../arch/lib/include/generated/ DEFINES+=-I$SRCDIR/../../../../../../include/uapi/ DEFINES+=-I$SRCDIR/../../../../../../include CCOPTS+=-fpic CCOPTS+=-D_GNU_SOURCE CCOPTS+=-O0 CCOPTS+=-U_FORTIFY_SOURCE CCOPTS+=-g LDFLAGS=-pie LDFLAGS+=-rdynamic"/>
        </build>
      </module>
 
