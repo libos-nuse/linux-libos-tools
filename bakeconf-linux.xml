@@ -65,15 +65,15 @@
       <source type="mercurial">
         <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
         <attribute name="module_directory" value="ns-3-dce"/>
-        <attribute name="revision" value="3f4dfb7d8461"/>
+        <attribute name="revision" value="dce-1.6"/>
       </source>
-      <depends_on name="dce-meta-1.5" optional="False"/>
+      <depends_on name="dce-meta-1.6" optional="False"/>
       <depends_on name="iproute2-dev" optional="False"/>
       <build type="waf" objdir="yes" sourcedir="ns-3-dce">
         <attribute name="supported_os" value="linux;linux2"/>
         <!-- assume the bake.py build is executed under arch/sim/test/buildtop/ -->
         <attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --with-libaspect=$INSTALLDIR --enable-kernel-stack=$SRCDIR/../../../../../../arch/"/>
-         <attribute name="post_installation" value="mkdir -p $INSTALLDIR/bin_dce; cd $INSTALLDIR/bin_dce ; ln -s -f $SRCDIR/../../../../../../arch/lib/tools/libsim-linux.so liblinux.so"/>
+         <attribute name="post_installation" value="mkdir -p $INSTALLDIR/bin_dce; cd $INSTALLDIR/bin_dce; ln -s -f $SRCDIR/../../../../../../arch/lib/tools/libsim-linux.so liblinux.so;  ln -s -f $SRCDIR/../../../../../../arch/lib/tools/libsim-linux.so libsim-linux.so"/>
       </build>
     </module>
 
@@ -148,7 +148,6 @@
     <module name="libpcap-dev">
       <source type="system_dependency">
         <attribute name="dependency_test" value="pcap.h"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="libpcap-dev"/>
         <attribute name="name_yum" value="libpcap-devel"/>
         <attribute name="more_information" value="Didn't find:   libpcap-dev package; please install it."/>
@@ -160,7 +159,6 @@
     <module name="libexpat-dev">
       <source type="system_dependency">
         <attribute name="dependency_test" value="expat.h"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="libexpat1-dev"/>
         <attribute name="name_yum" value="expat-devel"/>
         <attribute name="more_information" value="Didn't find:   libexpat-dev package; please install it."/>
@@ -198,7 +196,6 @@
     <module name="libdb-dev">
       <source type="system_dependency">
         <attribute name="dependency_test" value="db_185.h"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="libdb-dev"/>
         <attribute name="name_yum" value="db4-devel"/>
         <attribute name="more_information" value="Didn't find:   libdb-dev package; please install it."/>
@@ -210,7 +207,6 @@
     <module name="bison">
       <source type="system_dependency">
         <attribute name="dependency_test" value="bison"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="bison"/>
         <attribute name="name_yum" value="bison"/>
         <attribute name="more_information" value="The bison tool is not installed, try to install them (bison)"/>
@@ -222,7 +218,6 @@
     <module name="flex">
       <source type="system_dependency">
         <attribute name="dependency_test" value="flex"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="flex"/>
         <attribute name="name_yum" value="flex"/>
         <attribute name="more_information" value="The flex tool is not installed, try to install them (flex)"/>
@@ -234,7 +229,6 @@
     <module name="libsysfs-dev">
       <source type="system_dependency">
         <attribute name="dependency_test" value="libsysfs.h"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="libsysfs-dev"/>
         <attribute name="name_yum" value="libsysfs-devel"/>
         <attribute name="more_information" value="Didn't find:   libsysfs-dev package; please install it."/>
@@ -246,7 +240,6 @@
     <module name="libssl-dev">
       <source type="system_dependency">
         <attribute name="dependency_test" value="md5.h"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="libssl-dev"/>
         <attribute name="name_yum" value="openssl-devel"/>
         <attribute name="more_information" value="Didn't find:   libssl-dev package; please install it."/>
@@ -258,7 +251,6 @@
     <module name="lksctp-dev">
       <source type="system_dependency">
         <attribute name="dependency_test" value="sctp.h"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="lksctp-dev"/>
         <attribute name="name_yum" value="lksctp-tools-devel"/>
         <attribute name="more_information" value="Didn't find:   lksctp-dev package; please install it."/>
@@ -541,7 +533,6 @@
     <module name="indent">
       <source type="system_dependency">
         <attribute name="dependency_test" value="indent"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="indent"/>
         <attribute name="name_yum" value="indent"/>
         <attribute name="more_information" value="The indent tool is not installed, try to install them (indent)"/>
@@ -553,7 +544,6 @@
     <module name="gawk">
       <source type="system_dependency">
         <attribute name="dependency_test" value="gawk"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="gawk"/>
         <attribute name="name_yum" value="gawk"/>
         <attribute name="more_information" value="The gawk is not installed, try to install them (gawk)"/>
@@ -686,7 +676,10 @@
 
     <module name="pygccxml">
       <source type="archive">
+<!-- This may be enabled when bug 2059 is fixed
 	<attribute name="url" value="https://pypi.python.org/packages/source/p/pygccxml/pygccxml-v1.6.2.tar.gz"/>
+-->
+	<attribute name="url" value="http://downloads.sourceforge.net/project/pygccxml/pygccxml/pygccxml-1.0/pygccxml-1.0.0.zip"/>
       </source>
       <build type="python" objdir="yes">
       </build>
@@ -717,7 +710,6 @@
     <module name="python-dev">
       <source type="system_dependency">
         <attribute name="dependency_test" value="Python.h"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="python-dev"/>
         <attribute name="name_yum" value="python-devel"/>
         <attribute name="more_information" value="The python-dev is not installed, try to install it."/>
@@ -729,7 +721,6 @@
     <module name="pygraphviz">
       <source type="system_dependency">
         <attribute name="dependency_test" value="(_gv.so or _graphviz.so)"/>
-        <attribute name="try_to_install" value="False"/>
         <attribute name="name_apt-get" value="python-pygraphviz"/>
         <attribute name="name_yum" value="graphviz-python"/>
         <attribute name="name_yum" value="py27-pygraphviz"/>
@@ -742,7 +733,6 @@
     <module name="pygoocanvas">
       <source type="system_dependency">
         <attribute name="dependency_test" value="goocanvasmodule.so or libgoocanvas.a"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="python-pygoocanvas"/>
         <attribute name="name_yum" value="pygoocanvas"/>
         <attribute name="name_port" value="pygoocanvas"/>
@@ -755,7 +745,6 @@
     <module name="setuptools">
       <source type="system_dependency">
         <attribute name="dependency_test" value="easy_install"/>
-        <attribute name="try_to_install" value="False"/>
         <attribute name="name_apt-get" value="python-setuptools"/>
         <attribute name="name_yum" value="python-setuptools"/>
         <attribute name="name_port" value="py-setuptools"/>
@@ -858,7 +847,6 @@
     <module name="g++">
       <source type="system_dependency">
         <attribute name="dependency_test" value="g\+\+"/>
-        <attribute name="try_to_install" value="False"/>
         <attribute name="more_information" value="g++ is not installed, try to install it or talk to your system administrator"/>
       </source>
       <build type="none" objdir="no">
@@ -950,7 +938,6 @@
     <module name="qt4">
       <source type="system_dependency">
 	<attribute name="dependency_test" value="qobject.h and qapplication.h and (qmake or qmake-qt4)"/>
-	<attribute name="try_to_install" value="True"/>
 	<attribute name="name_yum" value="qt4-devel"/>
 	<attribute name="name_apt-get" value="qt4-dev-tools"/>
 	<attribute name="more_information" value="Didn't find:   QT 4, download and install it from http://qt.nokia.com/downloads/"/>
@@ -958,16 +945,27 @@
       <build type="none" objdir="no">
       </build>
     </module>
+  
+    <module name="libc">
+      <source type="system_dependency">
+        <attribute name="file_test" value="/usr/lib/ld-linux.so.2"/>
+        <attribute name="file_test" value="/usr/lib/ld-linux.so.2 or /lib/ld-linux.so.2"/>
+        <attribute name="name_apt-get" value="libc6"/>
+        <attribute name="name_yum" value="glibc"/>
+        <attribute name="more_information" value="Didn't find:   libc package; please install it."/>
+      </source>
+      <build type="none" objdir="no">
+      </build>
+    </module>
 
     <module name="libc-debug">
       <source type="system_dependency">
-        <!-- copy-pasted from elf-loader/extract-system-config.py -->
-        <attribute name="dependency_test" value="/usr/lib64/debug/lib64/ld-2.11.2.so.debug or /usr/lib/debug/lib64/ld-linux-x86-64.so.2.debug or /usr/lib/debug/ld-linux-x86-64.so.2 or /usr/lib/debug/lib/ld-linux.so.2.debug or /usr/lib/debug/ld-linux.so.2 or /usr/lib/debug/lib/i386-linux-gnu/ld-2.13.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.13.so or /usr/lib/debug/lib/ld-2.10.1.so or /usr/lib/debug/lib/ld-2.11.1.so or /usr/lib/debug/lib/ld-2.12.1.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.15.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.15.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.17.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.17.so"/>
-        <attribute name="try_to_install" value="False"/> <!-- should be fixed -->
+        <attribute name="file_test" value="/usr/lib/debug/lib64/ld-linux-x86-64.so.2.debug or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.19.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.18.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.17.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.16.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.15.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.19.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.18.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.17.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.16.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.15.so"/>
         <attribute name="name_apt-get" value="libc6-dbg"/>
         <attribute name="name_yum" value="glibc-debuginfo"/>
         <attribute name="more_information" value="Didn't find:   libc debug package; please install it."/>
       </source>
+      <depends_on name="libc" optional="False"/>
       <build type="none" objdir="no">
       </build>
     </module>
@@ -1049,6 +1047,18 @@
       <depends_on name="g++" optional="False"/>
     </module>
 
+   <module name="netanim-3.106">
+      <source type="mercurial">
+        <attribute name="url" value="http://code.nsnam.org/netanim"/>
+        <attribute name="revision" value="1b553275ffe6"/>
+      </source>
+      <build type="make" objdir="no">
+        <attribute name="pre_installation" value="cd $SRCDIR;qmake NetAnim.pro or cd $SRCDIR;qmake-qt4 NetAnim.pro or cd $SRCDIR;qmake -spec macx-g++ NetAnim.pro"/>
+      </build>
+      <depends_on name="qt4" optional="False"/>
+      <depends_on name="g++" optional="False"/>
+    </module>
+
   <module name="ns-3-allinone">
       <source type="none"/>
       <depends_on name="netanim" optional="True"/>
@@ -1057,7 +1067,7 @@
       <depends_on name="pyviz-prerequisites" optional="True"/>
       <depends_on name="click-dev" optional="True"/>
       <depends_on name="openflow-dev" optional="True"/>
-      <depends_on name="pygccxml-1.6.2" optional="True"/>
+      <depends_on name="pygccxml-1.0.0" optional="True"/>
       <depends_on name="gccxml-ns3" optional="True"/>
       <depends_on name="BRITE" optional="True"/>
       <depends_on name="ns-3-dev" optional="False"/>
@@ -1167,11 +1177,23 @@
       <source type="mercurial">
 	<attribute name="url" value="http://code.nsnam.org/ns-3.22"/>
       </source>
-      <!-- depends_on name="netanim-3.105" optional="True"/ -->
+      <depends_on name="netanim-3.105" optional="True"/>
       <depends_on name="pybindgen-0.17.0.886" optional="True"/>
       <depends_on name="pyviz-prerequisites" optional="True"/>
       <build type="waf" objdir="yes">
-	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR"/>
+	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --enable-examples --enable-tests"/>
+      </build>
+    </module>
+
+    <module name="ns-3.23">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/ns-3.23"/>
+      </source>
+      <depends_on name="netanim-3.106" optional="True"/>
+      <depends_on name="pybindgen-0.17.0.886" optional="True"/>
+      <depends_on name="pyviz-prerequisites" optional="True"/>
+      <build type="waf" objdir="yes">
+	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --enable-examples --enable-tests"/>
       </build>
     </module>
 
@@ -1255,10 +1277,25 @@
       <depends_on name="pyviz-prerequisites" optional="True"/>
       <depends_on name="click-ns-3.20" optional="True"/>
       <depends_on name="openflow-ns-3.17" optional="True"/>
-      <depends_on name="pygccxml-1.6.2" optional="True"/>
+      <depends_on name="pygccxml-1.0.0" optional="True"/>
       <depends_on name="gccxml-ns3" optional="True"/>
       <depends_on name="BRITE" optional="True"/>
       <depends_on name="ns-3.22" optional="False"/>
+      <build type="none"/>
+    </module>
+
+    <module name="ns-allinone-3.23">
+      <source type="none"/>
+      <depends_on name="netanim-3.106" optional="True"/>
+      <depends_on name="nsc-0.5.3" optional="True"/>
+      <depends_on name="pybindgen-0.17.0.886" optional="True"/>
+      <depends_on name="pyviz-prerequisites" optional="True"/>
+      <depends_on name="click-ns-3.20" optional="True"/>
+      <depends_on name="openflow-ns-3.17" optional="True"/>
+      <depends_on name="pygccxml-1.0.0" optional="True"/>
+      <depends_on name="gccxml-ns3" optional="True"/>
+      <depends_on name="BRITE" optional="True"/>
+      <depends_on name="ns-3.23" optional="False"/>
       <build type="none"/>
     </module>
 
@@ -1831,12 +1868,99 @@
       </build>
     </module>
 
+    <!-- dce-1.6 -->
+    <module name="dce-meta-1.6">
+      <source type="mercurial">
+        <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
+        <attribute name="module_directory" value="ns-3-dce"/>
+        <attribute name="revision" value="dce-1.6"/>
+      </source>
+      <depends_on name="ns-3.23" optional="False"/>
+      <depends_on name="elf-loader" optional="True"/>
+      <depends_on name="iperf" optional="True"/>
+      <depends_on name="ccnx" optional="True"/>
+      <depends_on name="wget" optional="True"/>
+      <depends_on name="thttpd" optional="True"/>
+      <depends_on name="bash" optional="True"/>
+      <build type="none">
+      </build>
+    </module>
+
+    <module name="dce-ns3-1.6">
+      <source type="mercurial">
+        <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
+        <attribute name="module_directory" value="ns-3-dce"/>
+        <attribute name="revision" value="dce-1.6"/>
+      </source>
+      <depends_on name="dce-meta-1.6" optional="False"/>
+      <build type="waf" objdir="yes" sourcedir="ns-3-dce">
+	<attribute name="supported_os" value="linux;linux2"/>
+	<attribute name="configure_arguments" value="configure --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --prefix=$INSTALLDIR"/>
+      </build>
+    </module>
+
+    <module name="dce-linux-1.6">
+      <source type="mercurial">
+        <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
+        <attribute name="module_directory" value="ns-3-dce"/>
+        <attribute name="revision" value="dce-1.6"/>
+      </source>
+      <depends_on name="dce-meta-1.6" optional="False"/>
+      <depends_on name="net-next-sim-2.6.36" optional="False"/>
+      <depends_on name="iproute-2.6.38-fix-01" optional="False"/>
+      <build type="waf" objdir="yes" sourcedir="ns-3-dce">
+	<attribute name="supported_os" value="linux;linux2"/>
+	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --enable-kernel-stack=$SRCDIR/../net-next-sim-2.6.36/arch"/>
+      </build>
+    </module>
+
+    <module name="dce-freebsd-1.6">
+      <source type="mercurial">
+        <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
+        <attribute name="module_directory" value="ns-3-dce"/>
+        <attribute name="revision" value="dce-1.6"/>
+      </source>
+      <depends_on name="dce-meta-1.6" optional="False"/>
+      <depends_on name="freebsd-sim-10.0.0" optional="False"/>
+      <build type="waf" objdir="yes" sourcedir="ns-3-dce">
+        <attribute name="supported_os" value="linux;linux2"/>
+        <attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --with-libaspect=$INSTALLDIR --enable-kernel-stack=$SRCDIR/../freebsd-sim/sys"/>
+      </build>
+    </module>
+
+    <module name="dce-quagga-1.6">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/thehajime/ns-3-dce-quagga"/>
+	<attribute name="module_directory" value="ns-3-dce/myscripts/ns-3-dce-quagga/"/>
+	<attribute name="revision" value="dce-1.6"/>
+      </source>
+      <depends_on name="quagga" optional="False"/>
+      <depends_on name="dce-meta-1.6" optional="False"/>
+      <depends_on name="iputils" optional="False"/>
+      <build type="none">
+	<attribute name="supported_os" value="linux;linux2"/>
+      </build>
+    </module>
+
+    <module name="dce-umip-1.6">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/thehajime/ns-3-dce-umip"/>
+	<attribute name="module_directory" value="ns-3-dce/myscripts/ns-3-dce-umip/"/>
+	<attribute name="revision" value="dce-1.6"/>
+      </source>
+      <depends_on name="dce-linux-1.6" optional="False"/>
+      <depends_on name="dce-quagga-1.6" optional="False"/>
+      <depends_on name="dce-meta-1.6" optional="False"/>
+      <depends_on name="umip" optional="False"/>
+      <build type="none">
+	<attribute name="supported_os" value="linux;linux2"/>
+      </build>
+    </module>
 
 <!--  Bake specific dependencies -->
     <module name="mercurial">
       <source type="system_dependency">
         <attribute name="dependency_test" value="hg"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="mercurial"/>
         <attribute name="name_yum" value="mercurial"/>
         <attribute name="more_information" value="Didn't find:   Mercurial package; please install it."/>
@@ -1848,7 +1972,6 @@
     <module name="subversion">
       <source type="system_dependency">
         <attribute name="dependency_test" value="svn"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="subversion"/>
         <attribute name="name_yum" value="subversion mod_dav_svn"/>
         <attribute name="more_information" value="Didn't find:   Subversion package (SVN); please install it."/>
@@ -1860,7 +1983,6 @@
     <module name="unrar">
       <source type="system_dependency">
         <attribute name="dependency_test" value="unrar"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="unrar"/>
         <attribute name="name_yum" value="rar"/>
         <attribute name="more_information" value="Didn't find:   unrar - Unarchiver for .rar files; please install it."/>
@@ -1872,7 +1994,6 @@
     <module name="make">
       <source type="system_dependency">
         <attribute name="dependency_test" value="make"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="make"/>
         <attribute name="name_yum" value="rar"/>
         <attribute name="more_information" value="Didn't find:   make - Utility for Directing compilation.; please install it."/>
@@ -1884,7 +2005,6 @@
     <module name="patch">
       <source type="system_dependency">
         <attribute name="dependency_test" value="patch"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="patch"/>
         <attribute name="name_yum" value="patch"/>
         <attribute name="more_information" value="Didn't find:   patch - Apply a diff file to an original; please install it."/>
@@ -1896,7 +2016,6 @@
     <module name="tar">
       <source type="system_dependency">
         <attribute name="dependency_test" value="tar"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="tar"/>
         <attribute name="name_yum" value="tar"/>
         <attribute name="more_information" value="Didn't find:   tar - GNU version of the tar archiving utility; please install it."/>
@@ -1908,7 +2027,6 @@
     <module name="cvs">
       <source type="system_dependency">
         <attribute name="dependency_test" value="cvs"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="cvs"/>
         <attribute name="name_yum" value="cvs"/>
         <attribute name="more_information" value="Didn't find:   cvs - Concurrent Versions System; please install it."/>
@@ -1920,7 +2038,6 @@
     <module name="git">
       <source type="system_dependency">
         <attribute name="dependency_test" value="git"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="git"/>
         <attribute name="name_yum" value="git"/>
         <attribute name="more_information" value="Didn't find:   git - fast, scalable, distributed revision control system; please install it."/>
@@ -1932,7 +2049,6 @@
     <module name="bazaar">
       <source type="system_dependency">
         <attribute name="dependency_test" value="bzr"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="bzr"/>
         <attribute name="name_yum" value="bzr"/>
         <attribute name="more_information" value="Didn't find:   bzr - easy to use distributed version control system; please install it."/>
@@ -1944,7 +2060,6 @@
     <module name="cmake">
       <source type="system_dependency">
         <attribute name="dependency_test" value="cmake"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="cmake"/>
         <attribute name="name_yum" value="cmake"/>
         <attribute name="more_information" value="Didn't find:   git - fast, scalable, distributed revision control system; please install it."/>
@@ -1956,7 +2071,6 @@
     <module name="automake">
       <source type="system_dependency">
         <attribute name="dependency_test" value="autoconf"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="autoconf automake"/>
         <attribute name="name_yum" value="autoconf automake"/>
         <attribute name="more_information" value="Didn't find:   autoconf and automake - automatic configure and Makefile script builders; please install it."/>
@@ -1968,7 +2082,6 @@
     <module name="7z">
       <source type="system_dependency">
         <attribute name="dependency_test" value="7z"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="p7zip-full"/>
         <attribute name="name_yum" value="p7zip p7zip-plugins"/>
         <attribute name="more_information" value="Didn't find:   p7zip - 7z file archiver with high compression ratio; please install it."/>
@@ -1980,7 +2093,6 @@
     <module name="xz-utils">
       <source type="system_dependency">
         <attribute name="dependency_test" value="xz"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="xz-utils"/>
         <attribute name="name_yum" value="xz-devel"/>
         <attribute name="more_information" value="Didn't find:   xz utils - XZ-format compression utilities; please install it."/>
@@ -1993,7 +2105,6 @@
     <module name="python-sphinx">
       <source type="system_dependency">
         <attribute name="dependency_test" value="sphinx-build"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="python-sphinx"/>
         <attribute name="name_yum" value="python-sphinx"/>
         <attribute name="more_information" value="Didn't find:   python-sphinx - documentation generator for Python projects; please install it, if you think you will gennerate the documentation."/>
@@ -2005,7 +2116,6 @@
     <module name="python-pygments">
       <source type="system_dependency">
         <attribute name="dependency_test" value="pygmentize"/>
-        <attribute name="try_to_install" value="True"/>
         <attribute name="name_apt-get" value="python-pygments"/>
         <attribute name="name_yum" value="python-pygments"/>
         <attribute name="more_information" value="Didn't find:   python-pygments - syntax highlighting package written in Python; please install it, if you think you will gennerate the documentation."/>
