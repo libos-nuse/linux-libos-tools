@@ -4,6 +4,7 @@
 [submodule "netmap"]
 	path = netmap
 	url = https://code.google.com/p/netmap/
+	ignore = dirty
 [submodule "dpdk"]
 	path = dpdk
 	url = git://dpdk.org/dpdk
