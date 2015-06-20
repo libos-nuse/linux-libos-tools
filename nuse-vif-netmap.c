@@ -241,3 +241,4 @@ nuse_vif_netmap_init(void)
 	nuse_vif[NUSE_VIF_NETMAP] = &nuse_vif_netmap;
 	return 0;
 }
+__define_initcall(nuse_vif_netmap_init, 1);
