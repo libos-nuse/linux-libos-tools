@@ -11,6 +11,6 @@ export RTE_TARGET
 set -e
 cd dpdk
 make -j1 CONFIG_RTE_LIBRTE_ETHDEV_DEBUG=y T=$(uname -m)-native-linuxapp-gcc config
-make -j1 SRCARCH=x86 CONFIG_RTE_BUILD_COMBINE_LIBS=y EXTRA_CFLAGS="-fPIC -g" \
+make SRCARCH=x86 CONFIG_RTE_BUILD_COMBINE_LIBS=y EXTRA_CFLAGS="-fPIC -g" \
   || (echo "dpdk build failed" && exit 1)
 

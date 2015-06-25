@@ -114,7 +114,7 @@ deliverframes(struct nuse_vif_dpdk *dpdk, struct SimDevice *dev)
 	dpdk->npkts--;
 	dpdk->bufidx++;
 
-	for (rm = rm0; rm; rm = rm->next) {
+	for (rm = rm0; rm; rm = rm->pkt.next) {
 		struct SimDevicePacket packet;
 
 		data = rte_pktmbuf_mtod(rm, void *);
