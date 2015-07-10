@@ -112,7 +112,10 @@ int
 nuse_fiber_wakeup(void *handler)
 {
 	struct NuseFiber *fiber = handler;
-	int ret = pthread_cond_signal(&fiber->condvar);
+	int ret;
+	pthread_mutex_lock(&fiber->mutex);
+	ret = pthread_cond_signal(&fiber->condvar);
+	pthread_mutex_unlock(&fiber->mutex);
 
 	return ret == 0 ? 1 : 0;
 }
