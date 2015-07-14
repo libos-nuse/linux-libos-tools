@@ -7,8 +7,8 @@ compiler:
   - gcc
 script:
   - git clone git://github.com/libos-nuse/net-next-nuse.git ../net-next-nuse
-  - cd ../net-next-nuse/arch/lib && ln -s ../../../linux-libos-tools tools
-  - cd ../../ && make defconfig ARCH=lib V=1
+  - cd ../ && /bin/cp -rpf linux-libos-tools net-next-nuse/arch/lib/tools
+  - cd net-next-nuse && make defconfig ARCH=lib V=1
   # disable DPDK build for a while
   - make clean ARCH=lib V=1 && make library ARCH=lib V=1
   - ./tools/testing/libos/nuse-test.sh
