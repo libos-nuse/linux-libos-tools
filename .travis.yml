@@ -8,9 +8,9 @@ compiler:
 script:
   - git clone git://github.com/libos-nuse/net-next-nuse.git ../net-next-nuse
   - cd ../net-next-nuse/arch/lib && ln -s ../../../linux-libos-tools tools
-  - cd ../net-next-nuse && make defconfig ARCH=lib V=1
+  - cd ../../ && make defconfig ARCH=lib V=1
   # disable DPDK build for a while
-  - cd ../net-next-nuse && make clean ARCH=lib V=1 && make library ARCH=lib V=1
-  - cd ../net-next-nuse && ./tools/testing/libos/nuse-test.sh
-  - cd ../net-next-nuse && make clean ARCH=lib V=1 && make library ARCH=lib OPT=no V=1
-  - cd ../net-next-nuse && ./tools/testing/libos/nuse-test.sh
+  - make clean ARCH=lib V=1 && make library ARCH=lib V=1
+  - ./tools/testing/libos/nuse-test.sh
+  - make clean ARCH=lib V=1 && make library ARCH=lib OPT=no V=1
+  - ./tools/testing/libos/nuse-test.sh
