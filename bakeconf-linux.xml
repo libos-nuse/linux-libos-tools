@@ -70,6 +70,7 @@
       </source>
       <depends_on name="dce-meta-1.6" optional="False"/>
       <depends_on name="iproute2-dev" optional="False"/>
+      <depends_on name="iputils" optional="False"/>
       <build type="waf" objdir="yes" sourcedir="ns-3-dce">
         <attribute name="supported_os" value="linux;linux2"/>
         <!-- assume the bake.py build is executed under arch/sim/test/buildtop/ -->
