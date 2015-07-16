@@ -65,8 +65,8 @@
       <source type="mercurial">
         <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
         <attribute name="module_directory" value="ns-3-dce"/>
-	<!-- Tue Jul 07 17:33:02 2015 +0900 Merge pull request #6 from hoang-tranviet/master -->
-        <attribute name="revision" value="995d19d8f993"/>
+	<!-- Thu Jul 16 15:23:15 2015 +0900 add iputils patch in dce (moved from ns-3-dce-quagga) -->
+        <attribute name="revision" value="1beefc014eec"/>
       </source>
       <depends_on name="dce-meta-1.6" optional="False"/>
       <depends_on name="iproute2-dev" optional="False"/>
@@ -462,7 +462,7 @@
        <depends_on name="libsysfs-dev" optional="False"/>
        <!-- note: iputils does not have 'make install' -->
        <build type="inline"  classname="IputilsModuleBuild">
-         <attribute name="patch" value="$SRCDIR/../ns-3-dce/myscripts/ns-3-dce-quagga/utils/iputils-ping6.patch"/>
+         <attribute name="patch" value="$SRCDIR/../ns-3-dce/utils/iputils-ping6.patch"/>
          <attribute name="supported_os" value="linux;linux2"/>
          <code>class IputilsModuleBuild(InlineModuleBuild):
     def __init__(self):
