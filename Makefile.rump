@@ -8,11 +8,13 @@ RUMPUSER_CONF_H=$(RUMP_TOP)/lib/librumpuser/rumpuser_config.h
 RUMP_NUSE_SRC=nuse-syscalls.c
 
 RUMP_SRC= \
-$(RUMP_TOP)/lib/librumpuser/rumpuser_sp.c \
-$(RUMP_TOP)/lib/librumpuser/rumpuser.c \
 $(RUMP_TOP)/lib/librumpuser/rumpuser_errtrans.c \
 $(RUMP_TOP)/lib/librumpuser/rumpuser_random.c \
-$(RUMP_TOP)/lib/librumpuser/rumpuser_pth_dummy.c
+$(RUMP_TOP)/lib/librumpuser/rumpuser_pth.c \
+$(RUMP_TOP)/lib/librumpuser/rumpuser_sp.c \
+$(RUMP_TOP)/lib/librumpuser/rumpuser.c
+#$(RUMP_TOP)/lib/librumpuser/rumpfiber_sp.c \
+$(RUMP_TOP)/lib/librumpuser/rumpfiber.c
 
 RUMP_HIJACK_SRC= \
 $(RUMP_TOP)/lib/librumphijack/hijack.c
@@ -20,6 +22,10 @@ $(RUMP_TOP)/lib/librumphijack/hijack.c
 RUMP_CLIENT_SRC= \
 $(RUMP_TOP)/lib/librumpclient/rumpclient.c \
 $(RUMP_TOP)/sys/rump/librump/rumpkern/rump_syscalls.c
+
+RUMP_SERVER_SRC= \
+$(RUMP_TOP)/usr.bin/rump_allserver/rump_allserver.c \
+rump.c
 
 ###### build flags
 RUMP_CFLAGS=-I./$(RUMP_TOP)/lib/librumpuser \
@@ -29,6 +35,7 @@ RUMP_CFLAGS=-I./$(RUMP_TOP)/lib/librumpuser \
 	-I./$(RUMP_TOP)/lib/librumpclient \
 	$(CFLAGS) -DRUMPUSER_CONFIG -DLIBRUMPUSER \
 	-I. -DRUMP_CLIENT \
+	-g \
 	$(RUMP_DEBUG)
 
 RUMP_LDFLAGS=-lpthread -ldl -Wl,-rpath=. -L. -lrumpclient $(covl_$(COV)) -Wl,-z,lazy
@@ -37,6 +44,7 @@ RUMP_NUSE_OBJ=$(addsuffix .o,$(basename $(RUMP_NUSE_SRC)))
 RUMP_OBJ=$(addsuffix .o,$(basename $(RUMP_SRC)))
 RUMP_CLIENT_OBJ=$(addsuffix .o,$(basename $(RUMP_CLIENT_SRC)))
 RUMP_HIJACK_OBJ=$(addsuffix .o,$(basename $(RUMP_HIJACK_SRC)))
+RUMP_SERVER_OBJ=$(addsuffix .o,$(basename $(RUMP_SERVER_SRC)))
 RUMPS_OBJ=$(RUMP_OBJ) $(RUMP_NUSE_OBJ)
 
 
@@ -74,11 +82,14 @@ $(RUMPUSER_CONF_H): $(RUMP_TOP)
 #### rumpserver object compile: embed to liblinux-nuse.so
 $(RUMP_NUSE_OBJ): %.o : %.c $(RUMPUSER_CONF_H) Makefile.rump
 	$(QUIET_CC) $(CC) $(CFLAGS) $(RUMP_CFLAGS) \
-	-I$(srctree)/include -DHOSTOPS -c $< -o $@
+	-I$(srctree)/include -c $< -o $@
 $(RUMP_OBJ): %.o : %.c $(RUMPUSER_CONF_H) Makefile.rump
-	$(QUIET_CC) $(CC) $(CFLAGS) $(RUMP_CFLAGS) -DHOSTOPS -c $< -o $@
+	$(QUIET_CC) $(CC) $(CFLAGS) $(RUMP_CFLAGS) -c $< -o $@
 librumpserver.so: $(RUMP_TOP) $(RUMP_OBJ) $(RUMP_NUSE_OBJ) Makefile.rump Makefile
 	$(QUIET_LINK) $(CC) -shared -Wl,-z,lazy $(RUMPS_OBJ) -o $@
+$(RUMP_SERVER_OBJ): %.o : %.c Makefile.rump Makefile
+	$(QUIET_CC) $(CC) $(RUMP_CFLAGS) -U_FORTIFY_SOURCE -I$(srctree)/include \
+	 -c $< -o $@
 
 
 #### rump {client,hijack} compile
@@ -94,6 +105,14 @@ librumpclient.so: $(RUMP_CLIENT_OBJ) Makefile.rump
 #### libnuse-hijack.so
 libnuse-hijack.so: $(RUMP_HIJACK_OBJ) $(RUMP_CLIENT_LIB) Makefile.rump
 	$(QUIET_LINK) $(CC) -shared $(RUMP_HIJACK_OBJ) $(RUMP_LDFLAGS) -o $@
+
+#### rump_allserver
+LDOPT= -Wl,-zlazy
+#LDOPT+= -Wl,--unresolved-symbols=ignore-in-object-files
+LDOPT+= -Wl,--unresolved-symbols=ignore-in-shared-libs
+#LDOPT+= -Wl,--warn-unresolved-symbols
+rump_allserver: $(RUMP_SERVER_OBJ) Makefile.rump
+	$(QUIET_LINK) $(CC) -lnuse-linux -L$(srctree) -llinux $(LDOPT) $(RUMP_SERVER_OBJ) $(RUMP_LDFLAGS) -lrumpserver  -o $@
 
 clean:
 	$(call QUIET_CLEAN, RUMP) rm -f $(RUMP_CLIENT_OBJ) $(RUMP_NUSE_OBJ) \

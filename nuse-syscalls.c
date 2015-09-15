@@ -3,15 +3,16 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include <rumpuser_port.h>
+#include <rump/rumpuser_port.h>
 #include <rump/rump.h> /* XXX: for rfork flags */
 #include <rump/rumpuser.h>
-#include <sys/syscallargs.h>
+#include <sys/syscallargs.h>    /* should be generated for Linux: borrow from rump-netbsd */
 #include "generated/utsrelease.h"
 #include "generated/compile.h"
 
@@ -256,11 +257,26 @@ static int sys_connect(struct lwp *l, const struct sys_connect_args *uap,
 		syscallarg(const struct sockaddr *)	name;
 		syscallarg(unsigned int)		namelen;
 	} */
-	int		error;
+	int error, len;
+	void *name;
 
-	error = nuse_connect(SCARG(uap, s), SCARG(uap, name),
-			SCARG(uap, namelen));
-	*retval = error;
+	len = SCARG(uap, namelen);
+	if (len > 0 && SCARG(uap, name) == NULL)
+		return EINVAL;
+	name = malloc(len);
+
+	error = nuse_copyin(SCARG(uap, name), name, len);
+	if (error)
+		goto end;
+
+	error = nuse_connect(SCARG(uap, s), name, len);
+	if (error != -1) {
+		*retval = error;
+		error = 0;
+	}
+
+end:
+	free (name);
 	return error;
 }
 
@@ -339,7 +355,7 @@ static int sys_sendmsg(struct lwp *l, const struct sys_sendmsg_args *uap,
 	int error, iovsz, i;
 	struct user_msghdr msg;
 	struct iovec *iov;
-	void *rmsg_name;
+	void *rmsg_name, *rmsg_control;
 
 	error = nuse_copyin(SCARG(uap, msg), &msg, sizeof(msg));
 	if (error)
@@ -364,7 +380,13 @@ static int sys_sendmsg(struct lwp *l, const struct sys_sendmsg_args *uap,
 	msg.msg_name = malloc(msg.msg_namelen);
 	error = nuse_copyin(rmsg_name, msg.msg_name, msg.msg_namelen);
 	if (error)
-		return error;
+		goto end;
+
+	rmsg_control = msg.msg_control;
+	msg.msg_control = malloc(msg.msg_controllen);
+	error = nuse_copyin(rmsg_control, msg.msg_control, msg.msg_controllen);
+	if (error)
+		goto end;
 
 	error = nuse_sendmsg(SCARG(uap, s),
 				&msg,
@@ -374,6 +396,12 @@ static int sys_sendmsg(struct lwp *l, const struct sys_sendmsg_args *uap,
 		*retval = error;
 		error = 0;
 	}
+
+end:
+	for (i = 0; i < msg.msg_iovlen; i++) {
+		free(iov[i].iov_base);
+	}
+
 	free(iov);
 	return error;
 }
@@ -424,6 +452,7 @@ static int sys_recvmsg(struct lwp *l, const struct sys_recvmsg_args *uap,
 	int error, iovsz, i;
 	struct user_msghdr msg;
 	struct iovec *liov, *riov;
+	void *rmsg_name = NULL;
 
 	error = nuse_copyin(SCARG(uap, msg), &msg, sizeof(msg));
 	if (error)
@@ -431,7 +460,12 @@ static int sys_recvmsg(struct lwp *l, const struct sys_recvmsg_args *uap,
 	iovsz = msg.msg_iovlen * sizeof(struct iovec);
 	liov = malloc(iovsz);
 	riov = malloc(iovsz);
-	msg.msg_name = malloc(msg.msg_namelen);
+	if (msg.msg_namelen > 0) {
+		rmsg_name = msg.msg_name;
+		msg.msg_name = malloc(msg.msg_namelen);
+	}
+	if (msg.msg_controllen > 0)
+		msg.msg_control = malloc(msg.msg_controllen);
 
 	error = nuse_copyin(msg.msg_iov, riov, iovsz);
 	if (error)
@@ -459,14 +493,19 @@ static int sys_recvmsg(struct lwp *l, const struct sys_recvmsg_args *uap,
 		}
 	}
 
+	/* notify msg_control to client */
 	if (msg.msg_control != NULL)
-		error = nuse_copyout(&msg.msg_control,
+		error = nuse_copyout(msg.msg_control,
 				(SCARG(uap, msg))
 				+ sizeof(void *) + sizeof(int)
 				+ sizeof(struct iov_iter) + sizeof(void *),
 				msg.msg_controllen);
 
-	/* XXX: no idea how msg_name should copyout to client */
+	/* notify msg_name to client */
+	if (msg.msg_name != NULL)
+		error = nuse_copyout(msg.msg_name,
+				     rmsg_name, msg.msg_namelen);
+
 #if 0
 	if (error == 0)
 		error = rumpuser_sp_copyout(th_spc, &msg.msg_name,
@@ -476,6 +515,7 @@ static int sys_recvmsg(struct lwp *l, const struct sys_recvmsg_args *uap,
 	free(riov);
 	free(liov);
 	free(msg.msg_name);
+	free(msg.msg_control);
 	return error;
 }
 
@@ -540,6 +580,18 @@ sys_shutdown(struct lwp *l, const struct sys_shutdown_args *uap,
 }
 #endif
 
+struct sock_filter {	/* Filter block */
+	uint16_t	code;   /* Actual filter code */
+	uint8_t	jt;	/* Jump true */
+	uint8_t	jf;	/* Jump false */
+	uint32_t	k;      /* Generic multiuse field */
+};
+
+struct sock_fprog {	/* Required for SO_ATTACH_FILTER. */
+	unsigned short		len;	/* Number of filter blocks */
+	struct sock_filter *filter;
+};
+
 static int sys_setsockopt(struct lwp *l, const struct sys_setsockopt_args *uap,
 			register_t *retval)
 {
@@ -552,6 +604,8 @@ static int sys_setsockopt(struct lwp *l, const struct sys_setsockopt_args *uap,
 	} */
 	int error, len;
 	void *val;
+	int name = SCARG(uap, name);
+	struct sock_fprog *fprog = NULL;
 
 	len = SCARG(uap, valsize);
 	if (len > 0 && SCARG(uap, val) == NULL)
@@ -562,11 +616,20 @@ static int sys_setsockopt(struct lwp *l, const struct sys_setsockopt_args *uap,
 	if (error)
 		goto end;
 
+	/* XXX: should be handled by copy_from_user => rump_copyin */
+	if (SCARG(uap, level) == SOL_SOCKET && name == SO_ATTACH_FILTER) {
+		return 0;
+		fprog = val;
+		void *rfilter = fprog->filter;
+		fprog->filter = malloc(fprog->len);
+		nuse_copyin(rfilter, fprog->filter, fprog->len);
+	}
+
 	error = nuse_setsockopt(SCARG(uap, s),
 				SCARG(uap, level),
-				SCARG(uap, name),
+				name,
 				val,
-				SCARG(uap, valsize));
+				len);
 end:
 	*retval = error;
 	free(val);
@@ -669,9 +732,33 @@ static int sys_getpeername(struct lwp *l, const struct sys_getpeername_args *uap
 		syscallarg(unsigned int *)	alen;
 	} */
 	int error;
+	socklen_t valsize;
+	struct sockaddr *data;
+
+	if (SCARG(uap, asa) != NULL) {
+		error = nuse_copyin(SCARG(uap, alen), &valsize, sizeof(valsize));
+		if (error)
+			return error;
+		data = malloc(valsize);
+	} else
+		valsize = 0;
+
 	error = nuse_getpeername(SCARG(uap, fdes),
-				SCARG(uap, asa),
-				SCARG(uap, alen));
+				data,
+				&valsize);
+
+	if (valsize > 0) {
+		error = nuse_copyout(data, SCARG(uap, asa), valsize);
+		if (error)
+			goto out;
+
+		error = nuse_copyout(&valsize, SCARG(uap, alen), sizeof(valsize));
+		if (error)
+			goto out;
+	}
+
+out:
+	free(data);
 	*retval = error;
 	return error;
 }
@@ -777,7 +864,10 @@ int rumpclient_syscall(int num, void *data, size_t dlen, register_t *retval)
 	return nuse_hyp_syscall(num, data, retval);
 }
 
-static void nuse_schedule(void){}
+void nuse_schedule(void)
+{
+}
+
 static void nuse_unschedule(void){}
 static void nuse_user_unschedule(int nlocks, int *countp, void *interlock){}
 static void nuse_user_schedule(int nlocks, void *interlock){}
@@ -823,7 +913,7 @@ nuse_syscall_proxy_init(void)
 	}
 	umask (0007);
 	rumpuser_sp_init(url, "Linux", UTS_RELEASE, UTS_MACHINE);
-	rumpuser_dprintf("nuse syscall proxy start at %s\n", url);
+	rumpuser_dprintf("===rump syscall proxy start at %s===\n", url);
 }
 
 void

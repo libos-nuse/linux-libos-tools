@@ -17,10 +17,16 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <assert.h>
+#include <poll.h>
 #include "nuse-hostcalls.h"
 #include "nuse-vif.h"
 #include "nuse.h"
 #include "nuse-libc.h"
+#include "nuse-sched.h"
+
+#ifndef PACKET_QDISC_BYPASS
+#define PACKET_QDISC_BYPASS		20
+#endif /* PACKET_QDISC_BYPASS */
 
 void
 nuse_vif_raw_read(struct nuse_vif *vif, struct SimDevice *dev)
@@ -29,7 +35,14 @@ nuse_vif_raw_read(struct nuse_vif *vif, struct SimDevice *dev)
 	char buf[8192];
 	ssize_t size;
 
+	struct pollfd x[1];
+	x[0].fd = sock;
+	x[0].events = POLLIN;
+
 	while (1) {
+		x[0].revents = 0;
+		host_poll(x, 1, -1);
+
 		size = host_read(sock, buf, sizeof(buf));
 		if (size < 0) {
 			printf("read error errno=%d\n", errno);
@@ -65,6 +78,7 @@ nuse_vif_raw_create(const char *ifname)
 	int sock = host_socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	struct sockaddr_ll ll;
 	struct nuse_vif *vif;
+	int val = 1;
 
 	if (sock < 0)
 		perror("socket");
@@ -77,6 +91,12 @@ nuse_vif_raw_create(const char *ifname)
 	err = host_bind(sock, (struct sockaddr *)&ll, sizeof(ll));
 	if (err)
 		perror("bind");
+
+	err = host_setsockopt(sock, SOL_PACKET, PACKET_QDISC_BYPASS,
+			      &val, sizeof(val));
+	if (err)
+		perror("sockopt(PACKET_QDISC_BYPASS)");
+
 
 	vif = malloc(sizeof(struct nuse_vif));
 	vif->sock = sock;

@@ -6,6 +6,8 @@
  *         Ryo Nakamura <upa@wide.ad.jp>
  */
 
+#define _GNU_SOURCE
+#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -16,7 +18,10 @@
 #include <sys/socket.h>
 #include <linux/route.h>
 #include <sys/ioctl.h>
-#include "list.h"         /* linked-list */
+
+#define HAVE_ALIGNED_ALLOC
+#include <rump/rumpuser_port.h>
+#include <rump/rumpuser.h>
 
 #include "sim-init.h"
 #include "sim-assert.h"
@@ -26,14 +31,10 @@
 #include "nuse-vif.h"
 #include "nuse-config.h"
 #include "nuse-libc.h"
+#include "nuse-sched.h"
 
 struct SimTask;
 struct SimExported *g_exported = NULL;
-
-struct NuseTask {
-	struct list_head head;
-	struct SimTask *s_task;
-};
 
 int nuse_socket(int domain, int type, int protocol);
 int nuse_ioctl(int fd, int request, ...);
@@ -65,9 +66,14 @@ void *nuse_memset(struct SimKernel *kernel, void *dst, char value,
 __u64 nuse_current_ns(struct SimKernel *kernel)
 {
 	struct timespec tp;
+	static __u64 init_ns = -1;
+
 
 	clock_gettime(CLOCK_MONOTONIC, &tp);
-	return tp.tv_sec * 1000000000 + tp.tv_nsec;
+	if (init_ns == -1) {
+		init_ns = tp.tv_sec * 1000000000 + tp.tv_nsec;
+	}
+	return tp.tv_sec * 1000000000 + tp.tv_nsec - init_ns;
 }
 unsigned long nuse_random(struct SimKernel *kernel)
 {
@@ -97,175 +103,21 @@ int atexit(void (*function)(void))
 	return 0;
 }
 
-static struct NuseTask *g_nuse_main_ctx = NULL;
-struct list_head g_task_lists = LIST_HEAD_INIT(g_task_lists);
-
-struct SimTask *nuse_task_current(struct SimKernel *kernel)
-{
-	struct NuseTask *task;
-	void *fiber;
-
-	list_for_each_entry(task, &g_task_lists, head) {
-		void *fiber = g_exported->task_get_private(task->s_task);
-		if (fiber && nuse_fiber_isself(fiber)) {
-			return task->s_task;
-		}
-	}
-
-	if (!g_nuse_main_ctx) {
-		fiber = nuse_fiber_new_from_caller(1 << 16, "init");
-		g_nuse_main_ctx = malloc(sizeof(struct NuseTask));
-		g_nuse_main_ctx->s_task = g_exported->task_create(fiber, getpid());
-		list_add_tail(&g_nuse_main_ctx->head, &g_task_lists);
-	}
-	return g_nuse_main_ctx->s_task;
-}
-
-struct NuseTaskTrampolineContext {
-	void (*callback)(void *);
-	void *context;
+struct thrdesc {
+	struct SimDevice *dev;
 	struct NuseTask *task;
 };
-
-void
-nuse_task_add(void *fiber)
-{
-	struct NuseTask *task = malloc(sizeof(struct NuseTask));
-	task->s_task = g_exported->task_create(fiber, getpid());
-
-	list_add_tail(&task->head, &g_task_lists);
-}
-
-static void *nuse_task_start_trampoline(void *context)
-{
-	/* we use this trampoline solely for the purpose of executing
-	   lib_update_jiffies. prior to calling the callback. */
-	struct NuseTaskTrampolineContext *ctx = context;
-	int found = 0;
-	struct NuseTask *task;
-
-	void (*callback)(void *);
-	void *callback_context;
-
-	list_for_each_entry(task, &g_task_lists, head) {
-		if (g_exported->task_get_private(task->s_task) ==
-		    g_exported->task_get_private(ctx->task->s_task)) {
-			found = 1;
-			break;
-		}
-	}
-	if (!found) {
-		printf("task not found\n");
-		return NULL;
-	}
-
-	if (nuse_fiber_is_stopped(g_exported->task_get_private(ctx->task->s_task))) {
-		lib_free(ctx);
-		lib_update_jiffies();
-		lib_printf("canceled\n");
-		return NULL;
-	}
-
-	callback = ctx->callback;
-	callback_context = ctx->context;
-	task = ctx->task;
-	lib_free(ctx);
-	lib_update_jiffies();
-
-	callback(callback_context);
-
-	/*  nuse_fiber_free (task->private); */
-	if (task->head.prev != LIST_POISON2)
-		list_del(&task->head);
-	free(task);
-
-	return ctx;
-}
-
-struct SimTask *nuse_task_start(struct SimKernel *kernel, 
-				void (*callback) (void *), void *context)
-{
-	struct NuseTask *task = NULL;
-	struct NuseTaskTrampolineContext *ctx =
-		lib_malloc(sizeof(struct NuseTaskTrampolineContext));
-
-	if (!ctx)
-		return NULL;
-	ctx->callback = callback;
-	ctx->context = context;
-
-	void *fiber = nuse_fiber_new(&nuse_task_start_trampoline, ctx, 1 << 16,
-				     "task");
-	task = malloc(sizeof(struct NuseTask));
-	task->s_task = g_exported->task_create(fiber, getpid());
-	ctx->task = task;
-
-	if (!nuse_fiber_is_stopped(g_exported->task_get_private(task->s_task)))
-		list_add_tail(&task->head, &g_task_lists);
-
-	nuse_fiber_start(fiber);
-	return task->s_task;
-}
-
-void *nuse_event_schedule_ns(struct SimKernel *kernel,
-			__u64 ns, void (*fn) (void *context), void *context,
-			void (*dummy_fn)(void))
-{
-	struct NuseTask *task = NULL;
-	struct NuseTaskTrampolineContext *ctx =
-		lib_malloc(sizeof(struct NuseTaskTrampolineContext));
-	void *fiber;
-
-	if (!ctx)
-		return NULL;
-	ctx->callback = fn;
-	ctx->context = context;
-
-	/* without fiber_start (pthread) */
-	fiber = nuse_fiber_new_from_caller(1 << 16, "task_sched");
-	task = malloc(sizeof(struct NuseTask));
-	task->s_task = g_exported->task_create(fiber, getpid());
-	ctx->task = task;
-
-	list_add_tail(&task->head, &g_task_lists);
-
-	nuse_add_timer(ns, nuse_task_start_trampoline, ctx, fiber);
-
-	return task;
-}
-
-void nuse_event_cancel(struct SimKernel *kernel, void *event)
-{
-	struct NuseTask *task = event;
-
-	nuse_fiber_stop(g_exported->task_get_private(task->s_task));
-	/*  nuse_fiber_free (task->private); */
-	if (task->head.prev != LIST_POISON2)
-		list_del(&task->head);
-}
-
-void nuse_task_wait(struct SimKernel *kernel)
-{
-	struct SimTask *task;
-
-	task = nuse_task_current(NULL);
-	lib_assert(task != NULL);
-	nuse_fiber_wait(g_exported->task_get_private(task));
-	lib_update_jiffies();
-}
-
-int nuse_task_wakeup(struct SimKernel *kernel, struct SimTask *task)
-{
-	return nuse_fiber_wakeup(g_exported->task_get_private(task));
-}
 
 void *
 nuse_netdev_rx_trampoline(void *context)
 {
-	struct SimDevice *dev = context;
+	struct thrdesc *td = context;
+	struct SimDevice *dev = td->dev;
 	struct nuse_vif *vif = g_exported->dev_get_private(dev);
 
+	rumpuser_curlwpop(RUMPUSER_LWP_SET, (struct lwp *)td->task);
 	nuse_vif_read(vif, dev);
+	free(td);
 	printf("should not reach here %s\n", __func__);
 	/* should not reach */
 	return dev;
@@ -350,9 +202,12 @@ nuse_netdev_create(struct nuse_vif_config *vifcf)
 	struct nuse_vif *vif;
 	struct ifreq ifr;
 	struct NuseTask *task = NULL;
-	void *fiber;
 	int sock;
 	struct SimDevice *dev;
+	int joinable = 1;
+	int pri = 0;
+	struct thrdesc *td;
+	char *name = "NET_RX";
 
 	printf("create vif %s\n", vifcf->ifname);
 	printf("  address = %s\n", vifcf->address);
@@ -425,12 +280,21 @@ nuse_netdev_create(struct nuse_vif_config *vifcf)
 	}
 
 	/* wait for packets */
-	fiber = nuse_fiber_new(&nuse_netdev_rx_trampoline, dev,
-			       1 << 16, "NET_RX");
-	task = malloc(sizeof(struct NuseTask));
-	task->s_task = g_exported->task_create(fiber, getpid());
-	list_add_tail(&task->head, &g_task_lists);
-	nuse_fiber_start(fiber);
+	task = nuse_new_task(name);
+	rumpuser_curlwpop(RUMPUSER_LWP_CREATE, (struct lwp *)task);
+	td = malloc(sizeof(*td));
+	td->task = task;
+	td->dev = dev;
+
+	err = rumpuser_thread_create(nuse_netdev_rx_trampoline, td, name,
+				     joinable, pri, -1, &task->thrid);
+	if (err) {
+		nuse_release_task(task);
+		free(td);
+		return;
+	}
+
+	return;
 }
 
 void
@@ -459,7 +323,14 @@ nuse_init(void)
 	struct nuse_config cf;
 
 	nuse_hostcall_init();
-	nuse_set_affinity();
+#if 1
+	cpu_set_t cpuset;
+
+	/* bind to cpu0 */
+	CPU_ZERO(&cpuset);
+	CPU_SET(0, &cpuset);
+	sched_setaffinity(getpid(), sizeof(cpu_set_t), &cpuset);
+#endif
 
 	/* create descriptor table */
 	memset(nuse_fd_table, 0, sizeof(nuse_fd_table));
@@ -502,7 +373,12 @@ nuse_init(void)
 	imported->poll_event = nuse_poll_event;
 
 	g_exported = malloc(sizeof(struct SimExported));
+
+	/* now it's ready to accept IPC */
+	nuse_syscall_proxy_init();
+
 	lib_init (g_exported, imported, NULL);
+	nuse_sched_init();
 
 	/* loopback IFF_UP * / */
 	nuse_netdev_lo_up();
@@ -528,8 +404,6 @@ nuse_init(void)
 			nuse_route_install(cf.routes[n]);
 	}
 
-	/* now it's ready to accept IPC */
-	nuse_syscall_proxy_init();
 }
 
 void __attribute__((destructor))

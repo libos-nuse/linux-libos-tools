@@ -3,15 +3,15 @@ include Makefile.include
 NUSE_LIB=libnuse-linux-$(KERNELVERSION).so
 SIM_LIB=libsim-linux-$(KERNELVERSION).so
 KERNEL_LIB=liblinux-$(KERNELVERSION).so
-RUMP_HIJACK_LIB=libnuse-hijack.so
-RUMP_CLIENT_LIB=librumpclient.so
-RUMP_SERVER_LIB=librumpserver.so
+
 LIBOS_DIR=..
 srctree=$(LIBOS_DIR)/../../
+RUMP_INCLUDE=$(srctree)/../obj/dest.stage/usr/include
+RUMP_LIB=$(srctree)/../obj/dest.stage/usr/lib
 
 CC=gcc
 
-all: $(NUSE_LIB) $(SIM_LIB) $(RUMP_HIJACK_LIB) $(RUMP_CLIENT_LIB)
+all: $(NUSE_LIB) $(SIM_LIB)
 
 clean:
 	$(call QUIET_CLEAN, nuse) rm -f *.o lib*.so
@@ -47,8 +47,9 @@ ifeq "$(NETMAP)" "yes"
 endif
 
 NUSE_SRC+=\
-nuse-fiber.c nuse-vif.c nuse-hostcalls.c nuse-config.c \
-nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse-glue.c nuse.c
+nuse-vif.c nuse-hostcalls.c nuse-config.c \
+nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse-glue.c nuse.c \
+nuse-sched.c nuse-syscalls.c
 
 
 SIM_SRC=sim.c
@@ -59,9 +60,11 @@ KERNEL_OBJS_SIM=$(addprefix $(srctree)/, $(OBJS))
 ALL_OBJS+=$(SIM_OBJ) $(NUSE_OBJ)
 
 # build flags
-LDFLAGS_NUSE = -shared -nodefaultlibs -L. -lrumpserver -ldl -lpthread -lrt $(DPDK_LDFLAGS) -Wl,-z,lazy
+LDFLAGS_NUSE = -shared -nodefaultlibs -L. -ldl -lpthread -lrt $(DPDK_LDFLAGS) -Wl,-z,lazy
 LDFLAGS_SIM = -shared -nodefaultlibs -g3 -Wl,-O1 -Wl,-T$(LIBOS_DIR)/linker.lds $(covl_$(COV))
+LDFLAGS_NUSE+= -Wl,-rpath=${RUMP_LIB} -L${RUMP_LIB} -lrumpuser
 CFLAGS+= -Wall -fno-stack-protector -U_FORTIFY_SOURCE -fPIC -g3 -I. -I$(LIBOS_DIR)/include
+CFLAGS+= -I${RUMP_INCLUDE} -DLIBRUMPUSER -DRUMP_CLIENT -I./include/
 export CFLAGS srctree LIBOS_DIR
 
 # build target
@@ -69,24 +72,15 @@ export CFLAGS srctree LIBOS_DIR
 	$(QUIET_CC) $(CC) $(CFLAGS) -c $<
 
 # order of $(dpdkl_$(DPDK)) matters...
-$(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(RUMP_SERVER_LIB) $(srctree)/$(KERNEL_LIB) Makefile
-	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(dpdkl_$(DPDK)) $(NUSE_OBJ) $(LDFLAGS_NUSE) -o $@ ;\
-	ln -s -f $(NUSE_LIB) libnuse-linux.so ;\
-	ln -s -f ./nuse.sh ./nuse
+$(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
+	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(dpdkl_$(DPDK)) $(NUSE_OBJ) $(LDFLAGS_NUSE) -o $@
+	@ln -s -f $(NUSE_LIB) libnuse-linux.so
+	@ln -s -f ./nuse.sh ./nuse
 
 $(SIM_LIB): $(SIM_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
-	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(KERNEL_OBJS_SIM) $(LDFLAGS_SIM) -o $@; \
-	ln -s -f $(SIM_LIB) libsim-linux.so
-
-$(RUMP_CLIENT_LIB): Makefile.rump Makefile FORCE
-	$(Q) $(MAKE) $(PRINT_DIR) -f Makefile.rump $@
-
-$(RUMP_HIJACK_LIB): $(RUMP_CLIENT_LIB) Makefile.rump Makefile FORCE
-	$(Q) $(MAKE) $(PRINT_DIR) -f Makefile.rump $@
-
-$(RUMP_SERVER_LIB): Makefile.rump Makefile FORCE
-	$(Q) $(MAKE) $(PRINT_DIR) -f Makefile.rump $@
+	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(KERNEL_OBJS_SIM) $(LDFLAGS_SIM) -o $@
+	$(QUIET_LINK) ln -s -f $(SIM_LIB) libsim-linux.so
 
 FORCH:
 .PHONY: clean FORCE
-.NOTPARALLEL : $(RUMP_SERVER_LIB) $(RUMP_CLIENT_LIB) $(RUMP_HIJACK_LIB)
+.NOTPARALLEL :

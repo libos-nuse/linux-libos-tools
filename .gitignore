@@ -16,3 +16,4 @@ git-sparse
 *.so
 nuse
 *~
+rump_allserver

@@ -6,4 +6,5 @@ rump:sys/rump/include/rump
 rump:sys/sys/syscall.h
 rump:sys/sys/syscallargs.h
 rump:sys/srcsys
+rump:usr.bin/rump_allserver/
 rump:.gitignore
