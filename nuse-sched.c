@@ -20,6 +20,7 @@
 
 #include <rump/rumpuser_port.h>
 #include <rump/rumpuser.h>
+#include <rump/rump.h>
 
 #include "sim-init.h"
 #include "sim-assert.h"
@@ -29,6 +30,55 @@
 
 extern struct SimExported *g_exported;
 struct NuseTask *lwp0 = NULL;
+/* librumpuser/rumpuser_int.h */
+int  rumpuser__errtrans(int);
+
+#ifdef RUMPRUN_READY
+int
+rump_pub_lwproc_newlwp(pid_t arg1)
+{
+	int rv;
+
+	rump_schedule();
+	rv = nuse_new_task("lwp") ? -1 : 0;
+	rump_unschedule();
+
+	return rv;
+}
+
+void
+rump_pub_lwproc_switch(struct lwp *arg1)
+{
+
+	rump_schedule();
+        /* FIXME */
+//	rump_lwproc_switch(arg1);
+	rump_unschedule();
+}
+
+void
+rump_pub_lwproc_releaselwp(void)
+{
+	struct SimTask *lib_task = nuse_task_current(NULL);
+	struct NuseTask *task = g_exported->task_get_private(lib_task);
+
+	rump_schedule();
+        nuse_release_task(task);
+	rump_unschedule();
+}
+
+struct lwp *
+rump_pub_lwproc_curlwp(void)
+{
+	struct lwp * rv;
+
+	rump_schedule();
+        rv = nuse_task_current(NULL);
+	rump_unschedule();
+
+	return rv;
+}
+#endif /* RUMPRUN_READY */
 
 struct NuseTask *nuse_new_task(char *name)
 {
@@ -244,6 +294,7 @@ int nuse_task_wakeup(struct SimKernel *kernel, struct SimTask *lib_task)
 }
 
 /* XXX */
+void rumpns_set_normalized_timespec(struct timespec *, time_t, time_t);
 static inline struct timespec timespec_add(struct timespec lhs,
 						struct timespec rhs)
 {
@@ -263,8 +314,10 @@ static void* nuse_clock_thread(void *noarg)
 	int error;
 
 	error = rumpuser_clock_gettime(RUMPUSER_CLOCK_ABSMONO, &sec, &nsec);
-	if (error)
-		rumpns_panic("clock: cannot get monotonic time\n");
+	if (error) {
+		lib_printf("clock: cannot get monotonic time\n");
+		lib_assert(0);
+	}
 
 	curclock.tv_sec = sec;
 	curclock.tv_nsec = nsec;
@@ -277,8 +330,10 @@ static void* nuse_clock_thread(void *noarg)
 
 		error = rumpuser_clock_sleep(RUMPUSER_CLOCK_ABSMONO,
 					     curclock.tv_sec, curclock.tv_nsec);
-		if (error)
-			rumpns_panic("clock sleep failure\n");
+		if (error) {
+			lib_printf("clock sleep failure\n");
+			lib_assert(0);
+		}
 		timespec_add(curclock, thetick);
 	}
 
@@ -291,6 +346,8 @@ void nuse_sched_init(void)
 	int rv;
 	rv = rumpuser_thread_create(nuse_clock_thread, NULL, "clock",
 				    0, 0, -1, NULL);
-	if (rv)
-		rumpns_panic("thread create failure\n");
+	if (rv) {
+		lib_printf("thread create failure\n");
+		lib_assert(0);
+	}
 }

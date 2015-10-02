@@ -11,9 +11,9 @@
 #
 *.o
 *.o.*
-git-sparse
 *.cmd
 *.so
 nuse
 *~
-rump_allserver
+*.a
+core

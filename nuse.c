@@ -43,6 +43,7 @@ int nuse_close(int fd);
 int nuse_vprintf(struct SimKernel *kernel, const char *str, va_list args)
 {
 	return vprintf(str, args);
+//	return rumpuser_dprintf(str, args);
 }
 void *nuse_malloc(struct SimKernel *kernel, unsigned long size)
 {
@@ -96,7 +97,7 @@ int nuse_access(struct SimKernel *kernel, const char *pathname, int mode)
 {
 	return host_access(pathname, mode);
 }
-int atexit(void (*function)(void))
+int nuse_atexit(void (*function)(void))
 {
 	/* XXX: need to handle host_atexit, but can't dynamically resolv 
 	   the symbol so, ignore it for the time being */
@@ -322,6 +323,7 @@ nuse_init(void)
 	char *config;
 	struct nuse_config cf;
 
+ 
 	nuse_hostcall_init();
 #if 1
 	cpu_set_t cpuset;
@@ -378,7 +380,9 @@ nuse_init(void)
 	nuse_syscall_proxy_init();
 
 	lib_init (g_exported, imported, NULL);
+	rumpuser_dprintf("GOGO \n");
 	nuse_sched_init();
+	rumpuser_dprintf("GOGO \n");
 
 	/* loopback IFF_UP * / */
 	nuse_netdev_lo_up();

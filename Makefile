@@ -1,6 +1,7 @@
 include Makefile.include
 
 NUSE_LIB=libnuse-linux-$(KERNELVERSION).so
+NUSE_SLIB=libnuse-linux.a
 SIM_LIB=libsim-linux-$(KERNELVERSION).so
 KERNEL_LIB=liblinux-$(KERNELVERSION).so
 
@@ -13,11 +14,10 @@ RUMP_LIB=$(RUMP_PREFIX)/usr/lib
 
 CC=gcc
 
-all: $(NUSE_LIB) $(SIM_LIB)
+all: $(NUSE_LIB) $(NUSE_SLIB) $(SIM_LIB)
 
 clean:
 	$(call QUIET_CLEAN, nuse) rm -f *.o lib*.so
-	$(call QUIET_CLEAN, rump) $(MAKE) clean -s -f Makefile.rump
 
 # vif extensions
 NUSE_SRC=""
@@ -51,7 +51,7 @@ endif
 NUSE_SRC+=\
 nuse-vif.c nuse-hostcalls.c nuse-config.c \
 nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse-glue.c nuse.c \
-nuse-sched.c nuse-syscalls.c
+nuse-sched.c nuse-syscalls.c rump.c
 
 
 SIM_SRC=sim.c
@@ -65,7 +65,7 @@ ALL_OBJS+=$(SIM_OBJ) $(NUSE_OBJ)
 LDFLAGS_NUSE = -shared -nodefaultlibs -L. -ldl -lpthread -lrt $(DPDK_LDFLAGS) -Wl,-z,lazy
 LDFLAGS_SIM = -shared -nodefaultlibs -g3 -Wl,-O1 -Wl,-T$(LIBOS_DIR)/linker.lds $(covl_$(COV))
 LDFLAGS_NUSE+= -Wl,-rpath=${RUMP_LIB} -L${RUMP_LIB} -lrumpuser
-CFLAGS+= -Wall -fno-stack-protector -U_FORTIFY_SOURCE -fPIC -g3 -I. -I$(LIBOS_DIR)/include
+CFLAGS+= -Wall -Werror -fno-stack-protector -U_FORTIFY_SOURCE -fPIC -g3 -I. -I$(LIBOS_DIR)/include
 CFLAGS+= -I${RUMP_INCLUDE} -DLIBRUMPUSER -DRUMP_CLIENT -I./include/
 export CFLAGS srctree LIBOS_DIR
 
@@ -79,9 +79,12 @@ $(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
 	@ln -s -f $(NUSE_LIB) libnuse-linux.so
 	@ln -s -f ./nuse.sh ./nuse
 
+$(NUSE_SLIB): $(NUSE_LIB)
+	$(QUIET_AR) rm -f libnuse-linux.a ; $(AR) cru $@ $(DPDK_OBJ) $(NUSE_OBJ)
+
 $(SIM_LIB): $(SIM_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
 	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(KERNEL_OBJS_SIM) $(LDFLAGS_SIM) -o $@
-	$(QUIET_LINK) ln -s -f $(SIM_LIB) libsim-linux.so
+	@ln -s -f $(SIM_LIB) libsim-linux.so
 
 FORCH:
 .PHONY: clean FORCE

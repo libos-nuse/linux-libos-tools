@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <stdint.h>
 
-#include <rumpuser_port.h>
+#include <rump/rumpuser_port.h>
 #include <rump/rump.h> /* XXX: for rfork flags */
 #include <rump/rumpuser.h>
 
@@ -61,5 +61,6 @@ rump_init_server(const char *url)
 int
 rump_init(void)
 {
+//	nuse_init();
 	return 0;
 }

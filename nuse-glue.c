@@ -512,7 +512,7 @@ int nuse_ioctl(int fd, int request, ...)
 }
 weak_alias(nuse_ioctl, ioctl);
 
-int fcntl(int fd, int cmd, ... /* arg */ )
+int nuse_fcntl(int fd, int cmd, ... /* arg */ )
 {
 	va_list vl;
 	int *argp;
@@ -553,7 +553,7 @@ int fcntl(int fd, int cmd, ... /* arg */ )
 	return err;
 }
 
-int open(const char *pathname, int flags, ...)
+int nuse_open(const char *pathname, int flags, ...)
 {
 	va_list vl;
 
@@ -908,7 +908,7 @@ nuse_poll(struct pollfd *fds, unsigned int nfds, struct timespec *end_time)
 }
 
 int
-poll(struct pollfd *fds, nfds_t nfds, int timeout)
+__nuse_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
 	struct timespec *to = NULL, end_time;
 	int hostcall = 0, rumpcall = 0;
@@ -937,7 +937,7 @@ poll(struct pollfd *fds, nfds_t nfds, int timeout)
 
 	return count;
 }
-weak_alias (poll, __poll);
+weak_alias (__nuse_poll, __poll);
 
 int
 select(int nfds, fd_set *readfds, fd_set *writefds,
@@ -1032,7 +1032,7 @@ select(int nfds, fd_set *readfds, fd_set *writefds,
 }
 
 int
-epoll_create(int size)
+nuse_epoll_create(int size)
 {
 	struct epoll_fd *epfd = malloc(sizeof(struct epoll_fd));
 	int real_fd;
@@ -1045,7 +1045,7 @@ epoll_create(int size)
 }
 
 int
-epoll_ctl(int epollfd, int op, int fd, struct epoll_event *event)
+nuse_epoll_ctl(int epollfd, int op, int fd, struct epoll_event *event)
 {
 	struct epoll_fd *prev = NULL, *epfd = nuse_fd_table[epollfd].epoll_fd;
 
@@ -1110,7 +1110,7 @@ epoll_ctl(int epollfd, int op, int fd, struct epoll_event *event)
 }
 
 int
-epoll_wait(int epollfd, struct epoll_event *events,
+nuse_epoll_wait(int epollfd, struct epoll_event *events,
 		int maxevents, int timeout)
 {
 	struct epoll_fd *cur, *epfd = nuse_fd_table[epollfd].epoll_fd;
