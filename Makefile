@@ -6,8 +6,10 @@ KERNEL_LIB=liblinux-$(KERNELVERSION).so
 
 LIBOS_DIR=..
 srctree=$(LIBOS_DIR)/../../
-RUMP_INCLUDE=$(srctree)/../obj/dest.stage/usr/include
-RUMP_LIB=$(srctree)/../obj/dest.stage/usr/lib
+
+RUMP_PREFIX?=$(srctree)/../buildrump.sh/obj/dest.stage
+RUMP_INCLUDE=$(RUMP_PREFIX)/usr/include
+RUMP_LIB=$(RUMP_PREFIX)/usr/lib
 
 CC=gcc
 
