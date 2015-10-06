@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <linux/if_ether.h>
 #include <netpacket/packet.h>
@@ -18,10 +19,10 @@
 #include <errno.h>
 #include <assert.h>
 #include <poll.h>
+#include <net/if.h>
 #include "nuse-hostcalls.h"
 #include "nuse-vif.h"
 #include "nuse.h"
-#include "nuse-libc.h"
 #include "nuse-sched.h"
 
 #ifndef PACKET_QDISC_BYPASS

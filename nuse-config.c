@@ -7,15 +7,16 @@
  */
 
 #include <sys/socket.h>
-#include <linux/socket.h>
-#include <linux/in.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include <stdlib.h>
+
 #include "nuse-vif.h"
 #include "nuse-config.h"
-#include "nuse-libc.h"
 
 static int
 strsplit(char *str, char **args, int max)

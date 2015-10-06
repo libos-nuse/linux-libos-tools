@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <unistd.h>
 #include <linux/types.h>
 #include <sys/socket.h>
 #include <linux/route.h>
@@ -30,20 +31,16 @@
 #include "nuse-hostcalls.h"
 #include "nuse-vif.h"
 #include "nuse-config.h"
-#include "nuse-libc.h"
 #include "nuse-sched.h"
 
 struct SimTask;
 struct SimExported *g_exported = NULL;
 
-int nuse_socket(int domain, int type, int protocol);
-int nuse_ioctl(int fd, int request, ...);
-int nuse_close(int fd);
 
 int nuse_vprintf(struct SimKernel *kernel, const char *str, va_list args)
 {
+	/* rumpuser_dprintf(str, args); */
 	return vprintf(str, args);
-//	return rumpuser_dprintf(str, args);
 }
 void *nuse_malloc(struct SimKernel *kernel, unsigned long size)
 {
@@ -106,7 +103,7 @@ int nuse_atexit(void (*function)(void))
 
 struct thrdesc {
 	struct SimDevice *dev;
-	struct NuseTask *task;
+	struct nuse_task *task;
 };
 
 void *
@@ -202,7 +199,7 @@ nuse_netdev_create(struct nuse_vif_config *vifcf)
 	int err;
 	struct nuse_vif *vif;
 	struct ifreq ifr;
-	struct NuseTask *task = NULL;
+	struct nuse_task *task = NULL;
 	int sock;
 	struct SimDevice *dev;
 	int joinable = 1;
@@ -322,7 +319,6 @@ nuse_init(void)
 	int n;
 	char *config;
 	struct nuse_config cf;
-
  
 	nuse_hostcall_init();
 #if 1
@@ -333,11 +329,6 @@ nuse_init(void)
 	CPU_SET(0, &cpuset);
 	sched_setaffinity(getpid(), sizeof(cpu_set_t), &cpuset);
 #endif
-
-	/* create descriptor table */
-	memset(nuse_fd_table, 0, sizeof(nuse_fd_table));
-	nuse_fd_table[1].real_fd = 1;
-	nuse_fd_table[2].real_fd = 2;
 
 	/* are those rump hypercalls? */
 	struct SimImported *imported = malloc(sizeof(struct SimImported));
@@ -376,18 +367,16 @@ nuse_init(void)
 
 	g_exported = malloc(sizeof(struct SimExported));
 
-	/* now it's ready to accept IPC */
-	nuse_syscall_proxy_init();
+	/* now it's ready to accept rump IPC */
+	rump_init();
 
 	lib_init (g_exported, imported, NULL);
-	rumpuser_dprintf("GOGO \n");
 	nuse_sched_init();
-	rumpuser_dprintf("GOGO \n");
 
-	/* loopback IFF_UP * / */
+	/* loopback IFF_UP */
 	nuse_netdev_lo_up();
-
-	srand(time(NULL)); /* for mac address randomization */
+	/* for mac address randomization */
+	srand(time(NULL));
 
 	/* read and parse a config file */
 	config = host_getenv("NUSECONF");
@@ -414,5 +403,5 @@ void __attribute__((destructor))
 nuse_exit(void)
 {
 	printf("finishing NUSE\n");
-	nuse_syscall_proxy_exit();
+	rump_exit();
 }

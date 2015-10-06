@@ -21,11 +21,15 @@ int (*host_pthread_create)(pthread_t *, const struct pthread_attr *,
 			   void *(*)(void *), void *) = NULL;
 int (*host_pthread_join)(pthread_t thread, void **retval) = NULL;
 int (*host_poll)(struct pollfd *, int, int) = NULL;
+int (*host_select)(int nfds, fd_set *readfds, fd_set *writefds,
+		   fd_set *exceptfds, struct timeval *timeout) = NULL;
 int (*host_socket)(int fd, int type, int proto) = NULL;
 int (*host_close)(int fd) = NULL;
 int (*host_bind)(int, const struct sockaddr *, int) = NULL;
 ssize_t (*host_write)(int fd, const void *buf, size_t count) = NULL;
 ssize_t (*host_send)(int sockfd, const void *buf, size_t len, int flags) = NULL;
+ssize_t (*host_sendto)(int fd, const void *buf, size_t len, int flags,
+		       const struct sockaddr *dest_addr, unsigned int addrlen) = NULL;
 ssize_t (*host_sendmsg)(int sockfd, const struct msghdr *msg, int flags) = NULL;
 ssize_t (*host_read)(int fd, void *buf, size_t count) = NULL;
 ssize_t (*host_writev)(int fd, const struct iovec *iovec, size_t count) = NULL;
@@ -67,6 +71,7 @@ void nuse_hostcall_init(void)
 	/* host functions */
 	host_socket = nuse_hostcall_resolve_sym("socket");
 	host_send = nuse_hostcall_resolve_sym("send");
+	host_sendto = nuse_hostcall_resolve_sym("sendto");
 	host_sendmsg = nuse_hostcall_resolve_sym("sendmsg");
 	host_write = nuse_hostcall_resolve_sym("write");
 	host_writev = nuse_hostcall_resolve_sym("writev");
@@ -78,6 +83,7 @@ void nuse_hostcall_init(void)
 	host_pthread_create = nuse_hostcall_resolve_sym("pthread_create");
 	host_pthread_join = nuse_hostcall_resolve_sym("pthread_join");
 	host_poll = nuse_hostcall_resolve_sym("poll");
+	host_select = nuse_hostcall_resolve_sym("select");
 	host_open = nuse_hostcall_resolve_sym("open");
 	host_open64 = nuse_hostcall_resolve_sym("open64");
 	host_ioctl = nuse_hostcall_resolve_sym("ioctl");

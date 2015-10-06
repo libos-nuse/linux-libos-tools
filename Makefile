@@ -8,16 +8,18 @@ KERNEL_LIB=liblinux-$(KERNELVERSION).so
 LIBOS_DIR=..
 srctree=$(LIBOS_DIR)/../../
 
-RUMP_PREFIX?=$(srctree)/../buildrump.sh/obj/dest.stage
+RUMP_PREFIX?=$(srctree)/../obj/dest.stage
 RUMP_INCLUDE=$(RUMP_PREFIX)/usr/include
 RUMP_LIB=$(RUMP_PREFIX)/usr/lib
 
 CC=gcc
+dot-target = $(dir $@).$(notdir $@)
+depfile = $(dot-target).d
 
 all: $(NUSE_LIB) $(NUSE_SLIB) $(SIM_LIB)
 
 clean:
-	$(call QUIET_CLEAN, nuse) rm -f *.o lib*.so
+	$(call QUIET_CLEAN, nuse) rm -f *.o lib*.so $(DEPS)
 
 # vif extensions
 NUSE_SRC=""
@@ -50,8 +52,8 @@ endif
 
 NUSE_SRC+=\
 nuse-vif.c nuse-hostcalls.c nuse-config.c \
-nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse-glue.c nuse.c \
-nuse-sched.c nuse-syscalls.c rump.c
+nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse.c \
+nuse-sched.c $(LIBOS_DIR)/rump_syscalls.c rump.c nuse-glue.c
 
 
 SIM_SRC=sim.c
@@ -65,13 +67,17 @@ ALL_OBJS+=$(SIM_OBJ) $(NUSE_OBJ)
 LDFLAGS_NUSE = -shared -nodefaultlibs -L. -ldl -lpthread -lrt $(DPDK_LDFLAGS) -Wl,-z,lazy
 LDFLAGS_SIM = -shared -nodefaultlibs -g3 -Wl,-O1 -Wl,-T$(LIBOS_DIR)/linker.lds $(covl_$(COV))
 LDFLAGS_NUSE+= -Wl,-rpath=${RUMP_LIB} -L${RUMP_LIB} -lrumpuser
-CFLAGS+= -Wall -Werror -fno-stack-protector -U_FORTIFY_SOURCE -fPIC -g3 -I. -I$(LIBOS_DIR)/include
-CFLAGS+= -I${RUMP_INCLUDE} -DLIBRUMPUSER -DRUMP_CLIENT -I./include/
+CFLAGS+= -Wp,-MD,$(depfile) -Wall -Werror -fno-stack-protector -U_FORTIFY_SOURCE -fPIC -g3 -I. -I$(LIBOS_DIR)/include
+CFLAGS+= -I${RUMP_INCLUDE} -DLIBRUMPUSER -I./include/ #FIXME -DRUMP_KERNEL_IS_LIBC
 export CFLAGS srctree LIBOS_DIR
+
+DEPS=$(addprefix ./.,$(addsuffix .o.d,$(basename $(NUSE_SRC))))
+DEPS+=$(addprefix ./.,$(addsuffix .o.d,$(basename $(SIM_SRC))))
+-include $(DEPS)
 
 # build target
 %.o : %.c Makefile
-	$(QUIET_CC) $(CC) $(CFLAGS) -c $<
+	$(QUIET_CC) $(CC) $(CFLAGS) -c $< -o $@
 
 # order of $(dpdkl_$(DPDK)) matters...
 $(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
