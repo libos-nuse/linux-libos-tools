@@ -36,13 +36,16 @@ rump_daemonize_done(int error)
 }
 
 int
-rump_pub_etfs_register_withsize(const char *arg1, const char *arg2, enum rump_etfs_type arg3, uint64_t arg4, uint64_t arg5)
+rump_pub_etfs_register_withsize(const char *arg1, const char *arg2,
+				enum rump_etfs_type arg3,
+				uint64_t arg4, uint64_t arg5)
 {
 	return 0;
 }
 
 int
-rump_pub_etfs_register(const char *arg1, const char *arg2, enum rump_etfs_type arg3)
+rump_pub_etfs_register(const char *arg1, const char *arg2,
+		       enum rump_etfs_type arg3)
 {
 	return 0;
 }
@@ -59,20 +62,21 @@ rump_syscall(int num, void *data, size_t dlen, register_t *retval)
 	int rv = 0;
 	sys_call_ptr_t syscall = NULL;
 	struct syscall_args *args;
-	args = (struct syscall_args *)data;
 
+	args = (struct syscall_args *)data;
 	syscall = rump_sys_call_table[num];
 	if (!syscall) {
 		retval[0] = -1;
 		return -1;
 	}
 
-	rv = ((long (*)(long, long, long, long, long, long))syscall)(args->args[0],
-								args->args[1],
-								args->args[2],
-								args->args[3],
-								args->args[4],
-								args->args[5]);
+	rv = ((long (*)(long, long, long, long, long, long))
+	      syscall) (args->args[0],
+			args->args[1],
+			args->args[2],
+			args->args[3],
+			args->args[4],
+			args->args[5]);
 	/* FIXME: need better err translation */
 	if (rv < 0) {
 		retval[0] = -rv;
@@ -82,14 +86,13 @@ rump_syscall(int num, void *data, size_t dlen, register_t *retval)
 }
 
 /* FIXME */
-struct task_struct;
 typedef struct { unsigned long seg; } mm_segment_t;
 struct thread_info {
 	unsigned int flags;
 	int preempt_count;
 	struct task_struct *task;
 	mm_segment_t addr_limit;
-	void* restart_block;
+	void *restart_block;
 };
 struct thread_info *rumpns_current_thread_info(void);
 
@@ -111,6 +114,7 @@ static int
 rump_libos_lwproc_rfork(void *priv, int flags, const char *comm)
 {
 	struct nuse_task *task = nuse_new_task((char *)comm);
+
 	task->rump_client = priv; /* store struct spc_client */
 
 	rumpuser_curlwpop(RUMPUSER_LWP_CREATE, (struct lwp *)task);
@@ -125,7 +129,6 @@ rump_libos_lwproc_release(void)
 	struct nuse_task *task = (struct nuse_task *)rumpuser_curlwp();
 
 	rumpuser_curlwpop(RUMPUSER_LWP_CLEAR, (struct lwp *)task);
-	return;
 }
 
 static void
@@ -143,6 +146,7 @@ rump_libos_lwproc_newlwp(pid_t pid)
 {
 	/* find nuse_task */
 	struct nuse_task *task = nuse_find_task(pid);
+
 	if (!task) {
 		rumpuser_dprintf("could not found pid %d\n", pid);
 		return ESRCH;
@@ -173,6 +177,7 @@ static pid_t
 rump_libos_hyp_getpid(void)
 {
 	struct nuse_task *task = (struct nuse_task *)rumpuser_curlwp();
+
 	return task->pid;
 }
 
@@ -184,11 +189,12 @@ rump_is_remote_client(void)
 	return task->rump_client;
 }
 
-static void rump_libos_schedule(void){}
-static void rump_libos_unschedule(void){}
-static void rump_libos_user_unschedule(int nlocks, int *countp, void *interlock){}
-static void rump_libos_user_schedule(int nlocks, void *interlock){}
-static void rump_libos_hyp_execnotify(const char *comm){}
+static void rump_libos_schedule(void) {}
+static void rump_libos_unschedule(void) {}
+static void rump_libos_user_unschedule(int nlocks, int *countp,
+				       void *interlock) {}
+static void rump_libos_user_schedule(int nlocks, void *interlock) {}
+static void rump_libos_hyp_execnotify(const char *comm) {}
 
 static const struct rumpuser_hyperup hyp = {
 	.hyp_schedule		= rump_libos_schedule,
@@ -217,7 +223,7 @@ rump_syscall_proxy_init(void)
 		sprintf(buf, "unix://%s.%d", RUMPSERVER_DEFAULT, getpid());
 		url = strdup(buf);
 	}
-	umask (0007);
+	umask(0007);
 	rumpuser_sp_init(url, "Linux", UTS_RELEASE, UTS_MACHINE);
 	rumpuser_dprintf("===rump syscall proxy start at %s===\n", url);
 }
@@ -241,7 +247,7 @@ rump_init(void)
 	}
 
 	rump_syscall_proxy_init();
-//	nuse_init();
+	/* nuse_init(); */
 	return 0;
 }
 

@@ -30,11 +30,10 @@
 
 #define NSEC_PER_SEC	1000000000L
 
-extern struct SimExported *g_exported;
 static unsigned long nuse_pid = 1000;
 static LIST_HEAD(, nuse_task) task_list = LIST_HEAD_INITIALIZER(task_list);
 
-struct nuse_task *lwp0 = NULL;
+static struct nuse_task *lwp0 = NULL;
 /* librumpuser/rumpuser_int.h */
 int  rumpuser__errtrans(int);
 
@@ -56,8 +55,8 @@ rump_pub_lwproc_switch(struct lwp *arg1)
 {
 
 	rump_schedule();
-        /* FIXME */
-//	rump_lwproc_switch(arg1);
+	/* FIXME */
+	rump_lwproc_switch(arg1);
 	rump_unschedule();
 }
 
@@ -67,17 +66,17 @@ rump_pub_lwproc_releaselwp(void)
 	struct nuse_task *task = (struct nuse_task *)rumpuser_curlwp();
 
 	rump_schedule();
-        nuse_release_task(task);
+	nuse_release_task(task);
 	rump_unschedule();
 }
 
 struct lwp *
 rump_pub_lwproc_curlwp(void)
 {
-	struct lwp * rv;
+	struct lwp *rv;
 
 	rump_schedule();
-        rv = nuse_task_current(NULL);
+	rv = nuse_task_current(NULL);
 	rump_unschedule();
 
 	return rv;
@@ -118,6 +117,7 @@ void nuse_release_task(struct nuse_task *task)
 struct nuse_task *nuse_find_task(unsigned long pid)
 {
 	struct nuse_task *task;
+
 	LIST_FOREACH(task, &task_list, entries) {
 		if (task->pid == pid)
 			return task;
@@ -172,10 +172,12 @@ static void *nuse_task_start_trampoline(void *arg)
 	if (td->timeout.tv_sec != 0 || td->timeout.tv_nsec != 0) {
 		rumpuser_mutex_enter(task->mtx);
 		err = rumpuser_cv_timedwait(task->cv, task->mtx,
-					    td->timeout.tv_sec, td->timeout.tv_nsec);
+					    td->timeout.tv_sec,
+					    td->timeout.tv_nsec);
 		if (task->canceled) {
 			if (!task->thrid) {
-				rumpuser_curlwpop(RUMPUSER_LWP_DESTROY, (struct lwp *)task);
+				rumpuser_curlwpop(RUMPUSER_LWP_DESTROY,
+						  (struct lwp *)task);
 				nuse_release_task(task);
 				free(td);
 			}
@@ -200,8 +202,8 @@ end:
 	return arg;
 }
 
-struct SimTask *nuse_task_start(struct SimKernel *kernel, 
-				void (*func) (void *), void *arg)
+struct SimTask *nuse_task_start(struct SimKernel *kernel,
+				void (*func)(void *), void *arg)
 {
 	int pri = 0;
 	int rv;
@@ -220,7 +222,8 @@ struct SimTask *nuse_task_start(struct SimKernel *kernel,
 	rv = rumpuser_thread_create(nuse_task_start_trampoline, td, name,
 				    joinable, pri, -1, &td->newlwp->thrid);
 	if (rv) {
-		rumpuser_curlwpop(RUMPUSER_LWP_DESTROY, (struct lwp *)td->newlwp);
+		rumpuser_curlwpop(RUMPUSER_LWP_DESTROY,
+				  (struct lwp *)td->newlwp);
 		nuse_release_task(td->newlwp);
 		free(td);
 		return NULL;
@@ -253,7 +256,8 @@ void *nuse_event_schedule_ns(struct SimKernel *kernel,
 	rv = rumpuser_thread_create(nuse_task_start_trampoline, td, name,
 				    joinable, pri, -1, &td->newlwp->thrid);
 	if (rv) {
-		rumpuser_curlwpop(RUMPUSER_LWP_DESTROY, (struct lwp *)td->newlwp);
+		rumpuser_curlwpop(RUMPUSER_LWP_DESTROY,
+				  (struct lwp *)td->newlwp);
 		nuse_release_task(td->newlwp);
 		free(td);
 		return NULL;
@@ -267,9 +271,8 @@ void nuse_event_cancel(struct SimKernel *kernel, void *event)
 	struct thrdesc *td = event;
 	struct nuse_task *task = td->newlwp;
 
-	if (task->canceled) {
+	if (task->canceled)
 		return;
-	}
 
 	task->canceled = 1;
 	rumpuser_mutex_enter(task->mtx);
@@ -314,6 +317,7 @@ static inline struct timespec timespec_add(struct timespec lhs,
 					   struct timespec rhs)
 {
 	struct timespec ts;
+
 	ts.tv_sec = lhs.tv_sec + rhs.tv_sec;
 	ts.tv_nsec = lhs.tv_nsec + rhs.tv_nsec;
 	while (ts.tv_nsec >= NSEC_PER_SEC) {
@@ -323,9 +327,8 @@ static inline struct timespec timespec_add(struct timespec lhs,
 	return ts;
 }
 
-void lib_update_jiffies(void);
 /* clock thread routine */
-static void* nuse_clock_thread(void *noarg)
+static void *nuse_clock_thread(void *noarg)
 {
 	struct timespec thetick, curclock;
 	int64_t sec;
@@ -364,6 +367,7 @@ void nuse_sched_init(void)
 {
 	int rv;
 	void *thrid;
+
 	rv = rumpuser_thread_create(nuse_clock_thread, NULL, "clock",
 				    0, 0, -1, &thrid);
 	if (rv) {

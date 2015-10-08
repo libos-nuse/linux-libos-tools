@@ -28,7 +28,8 @@ extern int (*host_bind)(int, const struct sockaddr *, int);
 extern ssize_t (*host_read)(int fd, void *buf, size_t count);
 extern ssize_t (*host_send)(int sockfd, const void *buf, size_t len, int flags);
 extern ssize_t (*host_sendto)(int fd, const void *buf, size_t len, int flags,
-			      const struct sockaddr *dest_addr, unsigned int addrlen);
+			      const struct sockaddr *dest_addr,
+			      unsigned int addrlen);
 extern ssize_t (*host_sendmsg)(int sockfd, const struct msghdr *msg, int flags);
 extern ssize_t (*host_write)(int fd, const void *buf, size_t count);
 extern ssize_t (*host_writev)(int fd, const struct iovec *iovec, size_t count);

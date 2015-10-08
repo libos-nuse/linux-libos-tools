@@ -68,9 +68,9 @@ __u64 nuse_current_ns(struct SimKernel *kernel)
 
 
 	clock_gettime(CLOCK_MONOTONIC, &tp);
-	if (init_ns == -1) {
+	if (init_ns == -1)
 		init_ns = tp.tv_sec * 1000000000 + tp.tv_nsec;
-	}
+
 	return tp.tv_sec * 1000000000 + tp.tv_nsec - init_ns;
 }
 unsigned long nuse_random(struct SimKernel *kernel)
@@ -319,7 +319,7 @@ nuse_init(void)
 	int n;
 	char *config;
 	struct nuse_config cf;
- 
+
 	nuse_hostcall_init();
 #if 1
 	cpu_set_t cpuset;

@@ -20,10 +20,9 @@ struct nuse_task {
 	struct rumpuser_mtx *mtx;
 	void *rump_client;
 	unsigned long pid;
+
 	LIST_ENTRY(nuse_task) entries;
 };
-
-extern struct nuse_task *lwp0;
 
 /* nuse-sched.h */
 void nuse_sched_init(void);
@@ -31,11 +30,11 @@ struct nuse_task *nuse_new_task(char *name);
 void nuse_release_task(struct nuse_task *task);
 struct nuse_task *nuse_find_task(unsigned long pid);
 struct SimTask *nuse_task_current(struct SimKernel *kernel);
-struct SimTask *nuse_task_start(struct SimKernel *kernel, 
-				void (*callback) (void *), void *context);
+struct SimTask *nuse_task_start(struct SimKernel *kernel,
+				void (*callback)(void *), void *context);
 void *nuse_event_schedule_ns(struct SimKernel *kernel,
-			     __u64 ns, void (*fn) (void *context), void *context,
-			     void (*dummy_fn)(void));
+			     __u64 ns, void (*fn) (void *context),
+			     void *context, void (*dummy_fn)(void));
 void nuse_event_cancel(struct SimKernel *kernel, void *event);
 void nuse_task_wait(struct SimKernel *kernel);
 int nuse_task_wakeup(struct SimKernel *kernel, struct SimTask *task);

@@ -35,8 +35,8 @@ nuse_vif_raw_read(struct nuse_vif *vif, struct SimDevice *dev)
 	int sock = vif->sock;
 	char buf[8192];
 	ssize_t size;
-
 	struct pollfd x[1];
+
 	x[0].fd = sock;
 	x[0].events = POLLIN;
 

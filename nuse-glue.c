@@ -35,7 +35,7 @@
 #define weak_alias(name, aliasname)					\
 	extern __typeof (name) aliasname __attribute__ ((weak, alias (# name)))
 
-#define RUMP_FD_OFFSET 256/2
+#define RUMP_FD_OFFSET (256/2)
 
 int nuse_socket(int domain, int type, int protocol)
 {
@@ -238,14 +238,16 @@ int nuse_setsockopt(int fd, int level, int optname,
 {
 	if (fd < RUMP_FD_OFFSET)
 		return host_setsockopt(fd, level, optname, optval, optlen);
-	return rump___sysimpl_setsockopt(fd, level, optname, (void *)optval, optlen);
+	return rump___sysimpl_setsockopt(fd, level, optname,
+					 (void *)optval, optlen);
 }
 weak_alias(nuse_setsockopt, setsockopt);
 
 int nuse_getsockopt(int fd, int level, int optname,
 		    void *optval, socklen_t *optlen)
 {
-	return rump___sysimpl_getsockopt(fd, level, optname, optval, (int *)optlen);
+	return rump___sysimpl_getsockopt(fd, level, optname,
+					 optval, (int *)optlen);
 }
 weak_alias(nuse_getsockopt, getsockopt);
 
@@ -266,7 +268,7 @@ int nuse_ioctl(int fd, int request, ...)
 }
 weak_alias(nuse_ioctl, ioctl);
 
-int nuse_fcntl(int fd, int cmd, ... /* arg */ )
+int nuse_fcntl(int fd, int cmd, ... /* arg */)
 {
 	va_list vl;
 	int *argp;
@@ -306,7 +308,7 @@ int nuse_pipe(int pipefd[2])
 {
 	return rump___sysimpl_pipe(pipefd);
 }
-weak_alias (nuse_pipe, pipe);
+weak_alias(nuse_pipe, pipe);
 
 int
 nuse_poll(struct pollfd *fds, nfds_t nfds, int timeout)
@@ -316,8 +318,8 @@ nuse_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 		return host_poll(fds, nfds, timeout);
 	return rump___sysimpl_poll(fds, nfds, timeout);
 }
-weak_alias (nuse_poll, __poll);
-weak_alias (nuse_poll, poll);
+weak_alias(nuse_poll, __poll);
+weak_alias(nuse_poll, poll);
 
 int
 nuse_select(int nfds, fd_set *readfds, fd_set *writefds,
@@ -329,15 +331,15 @@ nuse_select(int nfds, fd_set *readfds, fd_set *writefds,
 		if (fd > RUMP_FD_OFFSET)
 			break;
 
-		if (readfds != 0 && FD_ISSET(fd, readfds)){
+		if (readfds != 0 && FD_ISSET(fd, readfds)) {
 			host_flag = 1;
 			break;
 		}
-		if (writefds != 0 &&  FD_ISSET(fd, writefds)){
+		if (writefds != 0 &&  FD_ISSET(fd, writefds)) {
 			host_flag = 1;
 			break;
 		}
-		if (exceptfds != 0 && FD_ISSET(fd, exceptfds)){
+		if (exceptfds != 0 && FD_ISSET(fd, exceptfds)) {
 			host_flag = 1;
 			break;
 		}
@@ -345,23 +347,24 @@ nuse_select(int nfds, fd_set *readfds, fd_set *writefds,
 
 	if (host_flag)
 		return host_select(nfds, readfds, writefds, exceptfds, timeout);
-	return rump___sysimpl_select(nfds, readfds, writefds, exceptfds, timeout);
+	return rump___sysimpl_select(nfds, readfds, writefds,
+				     exceptfds, timeout);
 }
-weak_alias (nuse_select, select);
+weak_alias(nuse_select, select);
 
 int
 nuse_epoll_create(int size)
 {
 	return rump___sysimpl_epoll_create(size);
 }
-weak_alias (nuse_epoll_create, epoll_create);
+weak_alias(nuse_epoll_create, epoll_create);
 
 int
 nuse_epoll_ctl(int epollfd, int op, int fd, struct epoll_event *event)
 {
 	return rump___sysimpl_epoll_ctl(epollfd, op, fd, event);
 }
-weak_alias (nuse_epoll_ctl, epoll_ctl);
+weak_alias(nuse_epoll_ctl, epoll_ctl);
 
 int
 nuse_epoll_wait(int epollfd, struct epoll_event *events,
@@ -369,5 +372,5 @@ nuse_epoll_wait(int epollfd, struct epoll_event *events,
 {
 	return rump___sysimpl_epoll_wait(epollfd, events, maxevents, timeout);
 }
-weak_alias (nuse_epoll_wait, epoll_wait);
+weak_alias(nuse_epoll_wait, epoll_wait);
 
