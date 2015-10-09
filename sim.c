@@ -110,3 +110,9 @@ size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
 	return g_imported.fwrite(g_kernel, ptr, size, nmemb, stream);
 }
+
+void *
+rump_is_remote_client(void)
+{
+	return NULL;
+}
