@@ -65,10 +65,10 @@
       <source type="mercurial">
         <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
         <attribute name="module_directory" value="ns-3-dce"/>
-	<!-- Thu Jul 16 15:23:15 2015 +0900 add iputils patch in dce (moved from ns-3-dce-quagga) -->
-        <attribute name="revision" value="1beefc014eec"/>
+	<!-- Fri Oct 09 16:37:01 2015 +0900 add a NATIVE call dl_itera_phdr.patch (after dce-1.7) -->
+        <attribute name="revision" value="99f67c809a00"/>
       </source>
-      <depends_on name="dce-meta-1.6" optional="False"/>
+      <depends_on name="dce-meta-1.7" optional="False"/>
       <depends_on name="iproute2-dev" optional="False"/>
       <depends_on name="iputils" optional="False"/>
       <build type="waf" objdir="yes" sourcedir="ns-3-dce">
@@ -576,7 +576,7 @@
       </source>
       <build type="autotools" objdir="yes">
 	<attribute name="configure_arguments" value="../configure --prefix=$INSTALLDIR --exec-prefix=$INSTALLDIR -enable-userlevel --disable-linuxmodule --enable-nsclick --enable-wifi"/>
-	<attribute name="post_installation" value="mkdir $INSTALLDIR/lib; cp -r $OBJDIR/include $INSTALLDIR/lib/."/>
+	<attribute name="post_installation" value="mkdir $INSTALLDIR/lib; cp -r $OBJDIR/include $INSTALLDIR/lib/."/> 
       </build>
     </module>
 
@@ -587,7 +587,7 @@
       </source>
       <build type="autotools" objdir="yes">
 	<attribute name="configure_arguments" value="../configure --prefix=$INSTALLDIR --exec-prefix=$INSTALLDIR -enable-userlevel --disable-linuxmodule --enable-nsclick --enable-wifi"/>
-	<attribute name="post_installation" value="mkdir $INSTALLDIR/lib; cp -r $OBJDIR/include $INSTALLDIR/lib/."/>
+	<attribute name="post_installation" value="mkdir $INSTALLDIR/lib; cp -r $OBJDIR/include $INSTALLDIR/lib/."/> 
       </build>
     </module>
 
@@ -598,7 +598,7 @@
       </source>
       <build type="autotools" objdir="yes">
 	<attribute name="configure_arguments" value="../configure --prefix=$INSTALLDIR --exec-prefix=$INSTALLDIR -enable-userlevel --disable-linuxmodule --enable-nsclick --enable-wifi"/>
-	<attribute name="post_installation" value="mkdir $INSTALLDIR/lib; cp -r $OBJDIR/include $INSTALLDIR/lib/."/>
+	<attribute name="post_installation" value="mkdir $INSTALLDIR/lib; cp -r $OBJDIR/include $INSTALLDIR/lib/."/> 
       </build>
     </module>
 
@@ -610,15 +610,14 @@
       </source>
       <build type="autotools" objdir="yes">
 	<attribute name="configure_arguments" value="../configure -enable-userlevel --disable-linuxmodule --enable-nsclick --enable-wifi"/>
-	<!--	<attribute name="post_installation" value="mkdir $INSTALLDIR/lib; cp -r $OBJDIR/include $INSTALLDIR/lib/.; cp -r $SRCDIR/include $INSTALLDIR/lib"/>
-	-->
+	<!--	<attribute name="post_installation" value="mkdir $INSTALLDIR/lib; cp -r $OBJDIR/include $INSTALLDIR/lib/.; cp -r $SRCDIR/include $INSTALLDIR/lib"/> 
+	--> 
       </build>
     </module>
 
     <module name="libxml2-dev">
       <source type="system_dependency">
 	<attribute name="dependency_test" value="xmlIO.h"/>
-	<attribute name="try_to_install" value="True"/>
 	<attribute name="name_yum" value="libxml2-devel"/>
 	<attribute name="name_yast" value="libxml2-devel"/>
 	<attribute name="name_apt-get" value="libxml2-dev"/>
@@ -636,9 +635,9 @@
 	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR"/>
 	<attribute name="no_installation" value="True"/>
 
-        <!-- It complains if the lib directory exists, so I am removing the lib directory. Another
+        <!-- It complains if the lib directory exists, so I am removing the lib directory. Another 
              thing is that it try to install things by default, so the instalation is not required-->
-
+        
 	<attribute name="pre_installation" value="mv $INSTALLDIR/lib $INSTALLDIR/libTmp"/>
 	<attribute name="post_installation" value="mkdir $INSTALLDIR/lib; mv $INSTALLDIR/libTmp/* $INSTALLDIR/lib/.; rm -rf $INSTALLDIR/libTmp" />
       </build>
@@ -670,7 +669,6 @@
       <source type="git">
         <attribute name="url" value="git://github.com/gccxml/gccxml.git"/>
         <attribute name="module_directory" value="gccxml"/>
-        <attribute name="revision" value="ab651a2aa866351bdd089a4bf1d57f6a9bec2a66"/>
       </source>
       <build type="cmake" objdir="yes">
       </build>
@@ -722,10 +720,10 @@
 
     <module name="pygraphviz">
       <source type="system_dependency">
-        <attribute name="dependency_test" value="(_gv.so or _graphviz.so)"/>
+        <attribute name="dependency_test" value="(_gv.so or _graphviz.so or _graphviz.x86_64-linux-gnu.so)"/>
         <attribute name="name_apt-get" value="python-pygraphviz"/>
         <attribute name="name_yum" value="graphviz-python"/>
-        <attribute name="name_yum" value="py27-pygraphviz"/>
+        <attribute name="name_yum" value="py27-pygraphviz"/> 
         <attribute name="more_information" value="The pygraphviz is not installed, try to install it."/>
       </source>
       <build type="none" objdir="no">
@@ -767,17 +765,27 @@
     </module>
 
     <module name="pybindgen">
-      <source type="bazaar">
-	<attribute name="url" value="https://launchpad.net/pybindgen"/>
-<!--	<attribute name="revision" value="revno:825"/>
--->
+      <source type="git">
+	<attribute name="url" value="https://github.com/gjcarneiro/pybindgen.git"/>
       </source>
-      <build type="waf" objdir="yes">
-	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR"/>
-	<attribute name="build_arguments" value="--generate-version"/>
+      <build type="python" objdir="yes">
       </build>
       <depends_on name="pygccxml" optional="True"/>
       <depends_on name="python-dev" optional="True"/>
+      <depends_on name="setuptools" optional="False"/>
+    </module>
+
+    <module name="pybindgen-0.17.0.post41+ngd10fa60">
+      <source type="git">
+	<attribute name="url" value="https://github.com/gjcarneiro/pybindgen.git"/>
+        <attribute name="module_directory" value="pybindgen"/>
+        <attribute name="revision" value="d10fa606"/>
+      </source>
+      <build type="python" objdir="yes">
+      </build>
+      <depends_on name="pygccxml" optional="True"/>
+      <depends_on name="python-dev" optional="True"/>
+      <depends_on name="setuptools" optional="False"/>
     </module>
 
     <module name="pybindgen-0.16.0.825">
@@ -872,7 +880,7 @@
         jobstr=[]
         if not jobs == -1:
             jobstr = ['-j', str(jobs)]
-        env.run(['python', os.path.join(env.srcdir, 'scons.py'),
+        env.run(['python', os.path.join(env.srcdir, 'scons.py'), 
                  'prefix=' + env.installdir, 'install'] + jobstr,
                 directory=env.srcdir )
         srcLib = os.path.join(env.srcdir, 'lib')
@@ -883,7 +891,7 @@
                  shutil.copy2(os.path.join(srcLib, file), destination)
              except Exception as e:
                  print ("   > Error executing copy : " + str(e) + "\n")
-
+       
     def clean(self, env):
         env.run(['python', os.path.join(env.srcdir, 'scons.py'), '-c'],
                 directory=env.srcdir)
@@ -891,7 +899,7 @@
         return True</code>
       </build>
     </module>
-
+    
    <module name="nsc-0.5.3">
       <source type="mercurial">
 	<attribute name="url" value="https://secure.wand.net.nz/mercurial/nsc"/>
@@ -927,7 +935,7 @@
                  shutil.copy2(os.path.join(srcLib, file), destination)
              except Exception as e:
                  print ("   > Error executing copy : " + str(e) + "\n")
-
+       
     def clean(self, env):
         env.run(['python', os.path.join(env.srcdir, 'scons.py'), '-c'],
                 directory=env.srcdir)
@@ -962,7 +970,7 @@
 
     <module name="libc-debug">
       <source type="system_dependency">
-        <attribute name="file_test" value="/usr/lib/debug/lib64/ld-linux-x86-64.so.2.debug or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.19.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.18.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.17.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.16.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.15.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.19.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.18.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.17.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.16.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.15.so"/>
+        <attribute name="file_test" value="/usr/lib/debug/lib64/ld-linux-x86-64.so.2.debug or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.25.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.24.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.23.so /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.22.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.21.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.20.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.19.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.18.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.17.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.16.so or /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.15.so or/usr/lib/debug/lib/i386-linux-gnu/ld-2.25.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.24.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.23.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.22.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.21.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.20.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.19.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.18.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.17.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.16.so or /usr/lib/debug/lib/i386-linux-gnu/ld-2.15.so"/>
         <attribute name="name_apt-get" value="libc6-dbg"/>
         <attribute name="name_yum" value="glibc-debuginfo"/>
         <attribute name="more_information" value="Didn't find:   libc debug package; please install it."/>
@@ -1052,7 +1060,7 @@
    <module name="netanim-3.106">
       <source type="mercurial">
         <attribute name="url" value="http://code.nsnam.org/netanim"/>
-        <attribute name="revision" value="1b553275ffe6"/>
+        <attribute name="revision" value="986cb092c312"/>
       </source>
       <build type="make" objdir="no">
         <attribute name="pre_installation" value="cd $SRCDIR;qmake NetAnim.pro or cd $SRCDIR;qmake-qt4 NetAnim.pro or cd $SRCDIR;qmake -spec macx-g++ NetAnim.pro"/>
@@ -1199,6 +1207,18 @@
       </build>
     </module>
 
+    <module name="ns-3.24">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/ns-3.24"/>
+      </source>
+      <depends_on name="netanim-3.106" optional="True"/>
+      <depends_on name="pybindgen-0.17.0.post41+ngd10fa60" optional="True"/>
+      <depends_on name="pyviz-prerequisites" optional="True"/>
+      <build type="waf" objdir="yes">
+	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --enable-examples --enable-tests"/>
+      </build>
+    </module>
+
     <module name="ns-allinone-3.18">
       <source type="none"/>
       <depends_on name="netanim-3.103" optional="True"/>
@@ -1298,6 +1318,21 @@
       <depends_on name="gccxml-ns3" optional="True"/>
       <depends_on name="BRITE" optional="True"/>
       <depends_on name="ns-3.23" optional="False"/>
+      <build type="none"/>
+    </module>
+
+    <module name="ns-allinone-3.24">
+      <source type="none"/>
+      <depends_on name="netanim-3.106" optional="True"/>
+      <depends_on name="nsc-0.5.3" optional="True"/>
+      <depends_on name="pybindgen-0.17.0.post41+ngd10fa60" optional="True"/>
+      <depends_on name="pyviz-prerequisites" optional="True"/>
+      <depends_on name="click-ns-3.20" optional="True"/>
+      <depends_on name="openflow-ns-3.17" optional="True"/>
+      <depends_on name="pygccxml-1.0.0" optional="True"/>
+      <depends_on name="gccxml-ns3" optional="True"/>
+      <depends_on name="BRITE" optional="True"/>
+      <depends_on name="ns-3.24" optional="False"/>
       <build type="none"/>
     </module>
 
@@ -1959,6 +1994,95 @@
       </build>
     </module>
 
+    <!-- dce-1.7 -->
+    <module name="dce-meta-1.7">
+      <source type="mercurial">
+        <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
+        <attribute name="module_directory" value="ns-3-dce"/>
+        <attribute name="revision" value="dce-1.7"/>
+      </source>
+      <depends_on name="ns-3.24" optional="False"/>
+      <depends_on name="elf-loader" optional="True"/>
+      <depends_on name="iperf" optional="True"/>
+      <depends_on name="ccnx" optional="True"/>
+      <depends_on name="wget" optional="True"/>
+      <depends_on name="thttpd" optional="True"/>
+      <depends_on name="bash" optional="True"/>
+      <build type="none">
+      </build>
+    </module>
+
+    <module name="dce-ns3-1.7">
+      <source type="mercurial">
+        <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
+        <attribute name="module_directory" value="ns-3-dce"/>
+        <attribute name="revision" value="dce-1.7"/>
+      </source>
+      <depends_on name="dce-meta-1.7" optional="False"/>
+      <build type="waf" objdir="yes" sourcedir="ns-3-dce">
+	<attribute name="supported_os" value="linux;linux2"/>
+	<attribute name="configure_arguments" value="configure --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --prefix=$INSTALLDIR"/>
+      </build>
+    </module>
+
+    <module name="dce-linux-1.7">
+      <source type="mercurial">
+        <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
+        <attribute name="module_directory" value="ns-3-dce"/>
+        <attribute name="revision" value="dce-1.7"/>
+      </source>
+      <depends_on name="dce-meta-1.7" optional="False"/>
+      <depends_on name="net-next-sim-2.6.36" optional="False"/>
+      <depends_on name="iproute-2.6.38-fix-01" optional="False"/>
+      <build type="waf" objdir="yes" sourcedir="ns-3-dce">
+	<attribute name="supported_os" value="linux;linux2"/>
+	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --enable-kernel-stack=$SRCDIR/../net-next-sim-2.6.36/arch"/>
+      </build>
+    </module>
+
+    <module name="dce-freebsd-1.7">
+      <source type="mercurial">
+        <attribute name="url" value="http://code.nsnam.org/ns-3-dce"/>
+        <attribute name="module_directory" value="ns-3-dce"/>
+        <attribute name="revision" value="dce-1.7"/>
+      </source>
+      <depends_on name="dce-meta-1.7" optional="False"/>
+      <depends_on name="freebsd-sim-10.0.0" optional="False"/>
+      <build type="waf" objdir="yes" sourcedir="ns-3-dce">
+        <attribute name="supported_os" value="linux;linux2"/>
+        <attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --with-libaspect=$INSTALLDIR --enable-kernel-stack=$SRCDIR/../freebsd-sim/sys"/>
+      </build>
+    </module>
+
+    <module name="dce-quagga-1.7">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/thehajime/ns-3-dce-quagga"/>
+	<attribute name="module_directory" value="ns-3-dce/myscripts/ns-3-dce-quagga/"/>
+	<attribute name="revision" value="dce-1.7"/>
+      </source>
+      <depends_on name="quagga" optional="False"/>
+      <depends_on name="dce-meta-1.7" optional="False"/>
+      <depends_on name="iputils" optional="False"/>
+      <build type="none">
+	<attribute name="supported_os" value="linux;linux2"/>
+      </build>
+    </module>
+
+    <module name="dce-umip-1.7">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/thehajime/ns-3-dce-umip"/>
+	<attribute name="module_directory" value="ns-3-dce/myscripts/ns-3-dce-umip/"/>
+	<attribute name="revision" value="dce-1.7"/>
+      </source>
+      <depends_on name="dce-linux-1.7" optional="False"/>
+      <depends_on name="dce-quagga-1.7" optional="False"/>
+      <depends_on name="dce-meta-1.7" optional="False"/>
+      <depends_on name="umip" optional="False"/>
+      <build type="none">
+	<attribute name="supported_os" value="linux;linux2"/>
+      </build>
+    </module>
+
 <!--  Bake specific dependencies -->
     <module name="mercurial">
       <source type="system_dependency">
@@ -2129,7 +2253,7 @@
 <!--  Bake dependencies end -->
 
   </modules>
-
+ 
   <predefined name="set-bake-env">
       <enable name="mercurial"/>
       <enable name="subversion"/>
@@ -2162,7 +2286,7 @@
     <append name="CFLAGS" value="-O3"/>
     <append name="CXXFLAGS" value="-O3"/>
   </predefined>
-
+  
   <predefined name="ns3">
     <enable name="ns-3-dev"/>
     <!--    <configuration installdir="." sourcedir="../source"/> -->
