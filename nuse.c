@@ -10,15 +10,14 @@
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <string.h>
 #include <stdint.h>
-#include <pthread.h>
 #include <unistd.h>
 #include <linux/types.h>
 #include <sys/socket.h>
 #include <linux/route.h>
 #include <sys/ioctl.h>
+#include <time.h>
 
 #define HAVE_ALIGNED_ALLOC
 #include <rump/rumpuser_port.h>
@@ -34,72 +33,7 @@
 #include "nuse-sched.h"
 
 struct SimTask;
-struct SimExported *g_exported = NULL;
 
-
-int nuse_vprintf(struct SimKernel *kernel, const char *str, va_list args)
-{
-	/* rumpuser_dprintf(str, args); */
-	return vprintf(str, args);
-}
-void *nuse_malloc(struct SimKernel *kernel, unsigned long size)
-{
-	return malloc(size);
-}
-void nuse_free(struct SimKernel *kernel, void *buffer)
-{
-	return free(buffer);
-}
-
-void *nuse_memcpy(struct SimKernel *kernel, void *dst, const void *src,
-		unsigned long size)
-{
-	return memcpy(dst, src, size);
-}
-void *nuse_memset(struct SimKernel *kernel, void *dst, char value,
-		unsigned long size)
-{
-	return memset(dst, value, size);
-}
-__u64 nuse_current_ns(struct SimKernel *kernel)
-{
-	struct timespec tp;
-	static __u64 init_ns = -1;
-
-
-	clock_gettime(CLOCK_MONOTONIC, &tp);
-	if (init_ns == -1)
-		init_ns = tp.tv_sec * 1000000000 + tp.tv_nsec;
-
-	return tp.tv_sec * 1000000000 + tp.tv_nsec - init_ns;
-}
-unsigned long nuse_random(struct SimKernel *kernel)
-{
-	return random();
-}
-char *nuse_getenv(struct SimKernel *kernel, const char *name)
-{
-	return host_getenv(name);
-}
-int nuse_fclose(struct SimKernel *kernel, FILE *fp)
-{
-	return host_fclose(fp);
-}
-size_t nuse_fwrite(struct SimKernel *kernel, const void *ptr,
-		size_t size, size_t nmemb, FILE *stream)
-{
-	return host_fwrite(ptr, size, nmemb, stream);
-}
-int nuse_access(struct SimKernel *kernel, const char *pathname, int mode)
-{
-	return host_access(pathname, mode);
-}
-int nuse_atexit(void (*function)(void))
-{
-	/* XXX: need to handle host_atexit, but can't dynamically resolv 
-	   the symbol so, ignore it for the time being */
-	return 0;
-}
 
 struct thrdesc {
 	struct SimDevice *dev;
@@ -147,28 +81,6 @@ nuse_dev_xmit(struct SimKernel *kernel, struct SimDevice *dev,
 
 	nuse_vif_write(vif, dev, data, len);
 	lib_softirq_wakeup();
-}
-
-void nuse_signal_raised(struct SimKernel *kernel, struct SimTask *task, int sig)
-{
-	static int logged = 0;
-
-	if (!logged) {
-		lib_printf("%s: Not implemented yet\n", __func__);
-		logged = 1;
-	}
-}
-
-void
-nuse_poll_event(int flag, void *context)
-{
-	pthread_cond_t *condvar;
-	int ret;
-
-	condvar = (pthread_cond_t *)context;
-	ret = pthread_cond_signal(condvar);
-	if (ret != 0)
-		perror("pthread_cond_signal");
 }
 
 void
@@ -309,10 +221,6 @@ nuse_route_install(struct nuse_route_config *rtcf)
 
 }
 
-extern void lib_init(struct SimExported *exported,
-		const struct SimImported *imported,
-		struct SimKernel *kernel);
-
 void __attribute__((constructor))
 nuse_init(void)
 {
@@ -330,48 +238,8 @@ nuse_init(void)
 	sched_setaffinity(getpid(), sizeof(cpu_set_t), &cpuset);
 #endif
 
-	/* are those rump hypercalls? */
-	struct SimImported *imported = malloc(sizeof(struct SimImported));
-	memset(imported, 0, sizeof(struct SimImported));
-	imported->vprintf = nuse_vprintf;
-	imported->malloc = nuse_malloc;
-	imported->free = nuse_free;
-	imported->memcpy = nuse_memcpy;
-	imported->memset = nuse_memset;
-	imported->atexit = NULL; /* not implemented */
-	imported->access = nuse_access;
-	imported->getenv = nuse_getenv;
-	imported->mkdir = NULL; /* not implemented */
-	/* it's not hypercall, but just a POSIX glue ? */
-	imported->open = NULL;	   /* not used */
-	imported->__fxstat = NULL; /* not implemented */
-	imported->fseek = NULL; /* not implemented */
-	imported->setbuf = NULL; /* not implemented */
-	imported->ftell = NULL; /* not implemented */
-	imported->fdopen = NULL; /* not implemented */
-	imported->fread = NULL; /* not implemented */
-	imported->fwrite = nuse_fwrite;
-	imported->fclose = nuse_fclose;
-	imported->random = nuse_random;
-	imported->event_schedule_ns = nuse_event_schedule_ns;
-	imported->event_cancel = nuse_event_cancel;
-	imported->current_ns = nuse_current_ns;
-	imported->task_start = nuse_task_start;
-	imported->task_wait = nuse_task_wait;
-	imported->task_current = nuse_task_current;
-	imported->task_wakeup = nuse_task_wakeup;
-	imported->task_yield = NULL; /* not implemented */
-	imported->dev_xmit = nuse_dev_xmit;
-	imported->signal_raised = nuse_signal_raised;
-	imported->poll_event = nuse_poll_event;
-
-	g_exported = malloc(sizeof(struct SimExported));
-
 	/* now it's ready to accept rump IPC */
 	rump_init();
-
-	lib_init (g_exported, imported, NULL);
-	nuse_sched_init();
 
 	/* loopback IFF_UP */
 	nuse_netdev_lo_up();

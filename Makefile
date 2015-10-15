@@ -19,7 +19,7 @@ depfile = $(dot-target).d
 all: $(NUSE_LIB) $(NUSE_SLIB) $(SIM_LIB)
 
 clean:
-	$(call QUIET_CLEAN, nuse) rm -f *.o lib*.so $(DEPS)
+	$(call QUIET_CLEAN, nuse) rm -f $(ALL_OBJS) lib*.so $(DEPS)
 
 # vif extensions
 NUSE_SRC=""
@@ -68,7 +68,7 @@ LDFLAGS_NUSE = -shared -nodefaultlibs -L. -ldl -lpthread -lrt $(DPDK_LDFLAGS) -W
 LDFLAGS_SIM = -shared -nodefaultlibs -g3 -Wl,-O1 -Wl,-T$(LIBOS_DIR)/linker.lds $(covl_$(COV))
 LDFLAGS_NUSE+= -Wl,-rpath=${RUMP_LIB} -L${RUMP_LIB} -lrumpuser
 CFLAGS+= -Wp,-MD,$(depfile) -Wall -Werror -fno-stack-protector -U_FORTIFY_SOURCE -fPIC -g3 -I. -I$(LIBOS_DIR)/include
-CFLAGS+= -I${RUMP_INCLUDE} -DLIBRUMPUSER -I./include/ #FIXME -fno-strict-aliasing -DRUMP_KERNEL_IS_LIBC
+CFLAGS+= -I${RUMP_INCLUDE} -DLIBRUMPUSER -I./include/ $(klibc_$(KLIBC))
 export CFLAGS srctree LIBOS_DIR
 
 DEPS=$(addprefix ./.,$(addsuffix .o.d,$(basename $(NUSE_SRC))))

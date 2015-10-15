@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 
 #include <rump/rumpuser_port.h>
 #include <rump/rump.h> /* XXX: for rfork flags */
@@ -19,9 +20,19 @@
 #include <generated/compile.h>
 
 #include <asm/types.h>
+#include "sim-init.h"
+#include "sim-assert.h"
+#include "sim.h"
 #include "nuse-sched.h"
+#include "nuse-hostcalls.h"
+#include "nuse.h"
 
 #define RUMPSERVER_DEFAULT "/tmp/rump-server-nuse"
+struct SimExported *g_exported = NULL;
+
+extern void lib_init(struct SimExported *exported,
+		const struct SimImported *imported,
+		struct SimKernel *kernel);
 
 int
 rump_daemonize_begin(void)
@@ -238,6 +249,126 @@ rump_init_server(const char *url)
 	return 0;
 }
 
+int nuse_vprintf(struct SimKernel *kernel, const char *str, va_list args)
+{
+	rumpuser_dprintf(str, args);
+	return 0;
+}
+void *nuse_malloc(struct SimKernel *kernel, unsigned long size)
+{
+	return malloc(size);
+}
+void nuse_free(struct SimKernel *kernel, void *buffer)
+{
+	return free(buffer);
+}
+
+void *nuse_memcpy(struct SimKernel *kernel, void *dst, const void *src,
+		unsigned long size)
+{
+	return memcpy(dst, src, size);
+}
+void *nuse_memset(struct SimKernel *kernel, void *dst, char value,
+		unsigned long size)
+{
+	return memset(dst, value, size);
+}
+__u64 nuse_current_ns(struct SimKernel *kernel)
+{
+	struct timespec tp;
+	static __u64 init_ns = -1;
+
+
+	if (clock_gettime(CLOCK_MONOTONIC, &tp) == -1)
+		return init_ns;
+
+	if (init_ns == -1)
+		init_ns = tp.tv_sec * 1000000000 + tp.tv_nsec;
+
+	return tp.tv_sec * 1000000000 + tp.tv_nsec - init_ns;
+}
+unsigned long nuse_random(struct SimKernel *kernel)
+{
+	return random();
+}
+char *nuse_getenv(struct SimKernel *kernel, const char *name)
+{
+	return host_getenv(name);
+}
+int nuse_fclose(struct SimKernel *kernel, FILE *fp)
+{
+	return host_fclose(fp);
+}
+size_t nuse_fwrite(struct SimKernel *kernel, const void *ptr,
+		size_t size, size_t nmemb, FILE *stream)
+{
+	return host_fwrite(ptr, size, nmemb, stream);
+}
+int nuse_access(struct SimKernel *kernel, const char *pathname, int mode)
+{
+	return host_access(pathname, mode);
+}
+int nuse_atexit(void (*function)(void))
+{
+	/* XXX: need to handle host_atexit, but can't dynamically resolv 
+	   the symbol so, ignore it for the time being */
+	return 0;
+}
+
+void nuse_signal_raised(struct SimKernel *kernel, struct SimTask *task, int sig)
+{
+	static int logged = 0;
+
+	if (!logged) {
+		lib_printf("%s: Not implemented yet\n", __func__);
+		logged = 1;
+	}
+}
+
+void
+libos_init(void)
+{
+	/* are those rump hypercalls? */
+	struct SimImported *imported = malloc(sizeof(struct SimImported));
+	memset(imported, 0, sizeof(struct SimImported));
+	imported->vprintf = nuse_vprintf;
+	imported->malloc = nuse_malloc;
+	imported->free = nuse_free;
+	imported->memcpy = nuse_memcpy;
+	imported->memset = nuse_memset;
+	imported->atexit = NULL; /* not implemented */
+	imported->access = nuse_access;
+	imported->getenv = nuse_getenv;
+	imported->mkdir = NULL; /* not implemented */
+	/* it's not hypercall, but just a POSIX glue ? */
+	imported->open = NULL;	   /* not used */
+	imported->__fxstat = NULL; /* not implemented */
+	imported->fseek = NULL; /* not implemented */
+	imported->setbuf = NULL; /* not implemented */
+	imported->ftell = NULL; /* not implemented */
+	imported->fdopen = NULL; /* not implemented */
+	imported->fread = NULL; /* not implemented */
+	imported->fwrite = nuse_fwrite;
+	imported->fclose = nuse_fclose;
+	imported->random = nuse_random;
+	imported->event_schedule_ns = nuse_event_schedule_ns;
+	imported->event_cancel = nuse_event_cancel;
+	imported->current_ns = nuse_current_ns;
+	imported->task_start = nuse_task_start;
+	imported->task_wait = nuse_task_wait;
+	imported->task_current = nuse_task_current;
+	imported->task_wakeup = nuse_task_wakeup;
+	imported->task_yield = NULL; /* not implemented */
+	imported->dev_xmit = nuse_dev_xmit;
+	imported->signal_raised = nuse_signal_raised;
+	imported->poll_event = NULL;
+
+	g_exported = malloc(sizeof(struct SimExported));
+
+	lib_init (g_exported, imported, NULL);
+
+}
+
 int
 rump_init(void)
 {
@@ -246,8 +377,11 @@ rump_init(void)
 		return EINVAL;
 	}
 
+	libos_init();
+	nuse_sched_init();
+
 	rump_syscall_proxy_init();
-	/* nuse_init(); */
+
 	return 0;
 }
 
