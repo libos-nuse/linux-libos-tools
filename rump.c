@@ -23,7 +23,7 @@
 #include "sim-init.h"
 #include "sim-assert.h"
 #include "sim.h"
-#include "nuse-sched.h"
+#include "rump-sched.h"
 #include "nuse-hostcalls.h"
 #include "nuse.h"
 
@@ -124,7 +124,7 @@ rump_libos_hyp_syscall(int num, void *arg, long *retval)
 static int
 rump_libos_lwproc_rfork(void *priv, int flags, const char *comm)
 {
-	struct nuse_task *task = nuse_new_task((char *)comm);
+	struct rump_task *task = rump_new_task((char *)comm);
 
 	task->rump_client = priv; /* store struct spc_client */
 
@@ -137,7 +137,7 @@ rump_libos_lwproc_rfork(void *priv, int flags, const char *comm)
 static void
 rump_libos_lwproc_release(void)
 {
-	struct nuse_task *task = (struct nuse_task *)rumpuser_curlwp();
+	struct rump_task *task = (struct rump_task *)rumpuser_curlwp();
 
 	rumpuser_curlwpop(RUMPUSER_LWP_CLEAR, (struct lwp *)task);
 }
@@ -145,18 +145,18 @@ rump_libos_lwproc_release(void)
 static void
 rump_libos_lwproc_switch(struct lwp *newlwp)
 {
-	struct nuse_task *task = (struct nuse_task *)rumpuser_curlwp();
+	struct rump_task *task = (struct rump_task *)rumpuser_curlwp();
 
 	rumpuser_curlwpop(RUMPUSER_LWP_CLEAR, (struct lwp *)task);
 	rumpuser_curlwpop(RUMPUSER_LWP_SET, newlwp);
 }
 
-/* find nuse_task created by rfork */
+/* find rump_task created by rfork */
 static int
 rump_libos_lwproc_newlwp(pid_t pid)
 {
-	/* find nuse_task */
-	struct nuse_task *task = nuse_find_task(pid);
+	/* find rump_task */
+	struct rump_task *task = rump_find_task(pid);
 
 	if (!task) {
 		rumpuser_dprintf("could not found pid %d\n", pid);
@@ -178,16 +178,16 @@ rump_libos_lwproc_curlwp(void)
 static void
 rump_libos_hyp_lwpexit(void)
 {
-	struct nuse_task *task = (struct nuse_task *)rumpuser_curlwp();
+	struct rump_task *task = (struct rump_task *)rumpuser_curlwp();
 
 	rumpuser_curlwpop(RUMPUSER_LWP_DESTROY, (struct lwp *)task);
-	nuse_release_task(task);
+	rump_release_task(task);
 }
 
 static pid_t
 rump_libos_hyp_getpid(void)
 {
-	struct nuse_task *task = (struct nuse_task *)rumpuser_curlwp();
+	struct rump_task *task = (struct rump_task *)rumpuser_curlwp();
 
 	return task->pid;
 }
@@ -195,7 +195,7 @@ rump_libos_hyp_getpid(void)
 void *
 rump_is_remote_client(void)
 {
-	struct nuse_task *task = (struct nuse_task *)rumpuser_curlwp();
+	struct rump_task *task = (struct rump_task *)rumpuser_curlwp();
 
 	return task->rump_client;
 }
@@ -248,24 +248,24 @@ rump_init_server(const char *url)
 	return 0;
 }
 
-int nuse_vprintf(struct SimKernel *kernel, const char *str, va_list args)
+int rump_vprintf(struct SimKernel *kernel, const char *str, va_list args)
 {
 	rumpuser_dprintf(str, args);
 	return 0;
 }
-void *nuse_malloc(struct SimKernel *kernel, unsigned long size)
+void *rump_malloc(struct SimKernel *kernel, unsigned long size)
 {
 	void *mem;
 
 	rumpuser_malloc(size, 8, &mem);
 	return mem;
 }
-void nuse_free(struct SimKernel *kernel, void *buffer)
+void rump_free(struct SimKernel *kernel, void *buffer)
 {
 	return rumpuser_free(buffer, -1); /* XXX */
 }
 
-void *nuse_memcpy(struct SimKernel *kernel, void *dst, const void *src,
+void *rump_memcpy(struct SimKernel *kernel, void *dst, const void *src,
 		unsigned long size)
 {
 	char *tmp = dst;
@@ -275,7 +275,7 @@ void *nuse_memcpy(struct SimKernel *kernel, void *dst, const void *src,
 		*tmp++ = *s++;
 	return dst;
 }
-void *nuse_memset(struct SimKernel *kernel, void *dst, char value,
+void *rump_memset(struct SimKernel *kernel, void *dst, char value,
 		unsigned long size)
 {
 	unsigned char *ptr = dst;
@@ -285,7 +285,7 @@ void *nuse_memset(struct SimKernel *kernel, void *dst, char value,
 
 	return dst;
 }
-__u64 nuse_current_ns(struct SimKernel *kernel)
+__u64 rump_current_ns(struct SimKernel *kernel)
 {
 	struct timespec tp;
 	static __u64 init_ns = -1;
@@ -300,7 +300,7 @@ __u64 nuse_current_ns(struct SimKernel *kernel)
 
 	return tp.tv_sec * 1000000000 + tp.tv_nsec - init_ns;
 }
-unsigned long nuse_random(struct SimKernel *kernel)
+unsigned long rump_random(struct SimKernel *kernel)
 {
 	unsigned long val, randlen;
 
@@ -331,7 +331,7 @@ int nuse_atexit(void (*function)(void))
 	return 0;
 }
 
-void nuse_signal_raised(struct SimKernel *kernel, struct SimTask *task, int sig)
+void rump_signal_raised(struct SimKernel *kernel, struct SimTask *task, int sig)
 {
 	static int logged = 0;
 
@@ -347,12 +347,12 @@ libos_init(void)
 	/* are those rump hypercalls? */
 	struct SimImported *imported;
 	rumpuser_malloc(sizeof(struct SimImported), 8, (void **)&imported);
-	//memset(imported, 0, sizeof(struct SimImported));
-	imported->vprintf = nuse_vprintf;
-	imported->malloc = nuse_malloc;
-	imported->free = nuse_free;
-	imported->memcpy = nuse_memcpy;
-	imported->memset = nuse_memset;
+	rump_memset(NULL, imported, 0, sizeof(struct SimImported));
+	imported->vprintf = rump_vprintf;
+	imported->malloc = rump_malloc;
+	imported->free = rump_free;
+	imported->memcpy = rump_memcpy;
+	imported->memset = rump_memset;
 	imported->atexit = NULL; /* not implemented */
 	imported->access = nuse_access;
 	imported->getenv = nuse_getenv;
@@ -367,17 +367,17 @@ libos_init(void)
 	imported->fread = NULL; /* not implemented */
 	imported->fwrite = nuse_fwrite;
 	imported->fclose = nuse_fclose;
-	imported->random = nuse_random;
-	imported->event_schedule_ns = nuse_event_schedule_ns;
-	imported->event_cancel = nuse_event_cancel;
-	imported->current_ns = nuse_current_ns;
-	imported->task_start = nuse_task_start;
-	imported->task_wait = nuse_task_wait;
-	imported->task_current = nuse_task_current;
-	imported->task_wakeup = nuse_task_wakeup;
+	imported->random = rump_random;
+	imported->event_schedule_ns = rump_event_schedule_ns;
+	imported->event_cancel = rump_event_cancel;
+	imported->current_ns = rump_current_ns;
+	imported->task_start = rump_task_start;
+	imported->task_wait = rump_task_wait;
+	imported->task_current = rump_task_current;
+	imported->task_wakeup = rump_task_wakeup;
 	imported->task_yield = NULL; /* not implemented */
 	imported->dev_xmit = nuse_dev_xmit;
-	imported->signal_raised = nuse_signal_raised;
+	imported->signal_raised = rump_signal_raised;
 	imported->poll_event = NULL;
 
 	rumpuser_malloc(sizeof(struct SimExported), 8, (void **)&g_exported);
@@ -395,7 +395,7 @@ rump_init(void)
 	}
 
 	libos_init();
-	nuse_sched_init();
+	rump_sched_init();
 	rump_consdev_init();
 
 	return 0;

@@ -23,7 +23,6 @@
 #include "nuse-hostcalls.h"
 #include "nuse-vif.h"
 #include "nuse.h"
-#include "nuse-sched.h"
 
 #ifndef PACKET_QDISC_BYPASS
 #define PACKET_QDISC_BYPASS		20

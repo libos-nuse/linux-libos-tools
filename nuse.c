@@ -30,14 +30,14 @@
 #include "nuse-hostcalls.h"
 #include "nuse-vif.h"
 #include "nuse-config.h"
-#include "nuse-sched.h"
+#include "rump-sched.h"
 
 struct SimTask;
 
 
 struct thrdesc {
 	struct SimDevice *dev;
-	struct nuse_task *task;
+	struct rump_task *task;
 };
 
 void *
@@ -111,7 +111,7 @@ nuse_netdev_create(struct nuse_vif_config *vifcf)
 	int err;
 	struct nuse_vif *vif;
 	struct ifreq ifr;
-	struct nuse_task *task = NULL;
+	struct rump_task *task = NULL;
 	int sock;
 	struct SimDevice *dev;
 	int joinable = 1;
@@ -190,7 +190,7 @@ nuse_netdev_create(struct nuse_vif_config *vifcf)
 	}
 
 	/* wait for packets */
-	task = nuse_new_task(name);
+	task = rump_new_task(name);
 	rumpuser_curlwpop(RUMPUSER_LWP_CREATE, (struct lwp *)task);
 	td = malloc(sizeof(*td));
 	td->task = task;
@@ -199,7 +199,7 @@ nuse_netdev_create(struct nuse_vif_config *vifcf)
 	err = rumpuser_thread_create(nuse_netdev_rx_trampoline, td, name,
 				     joinable, pri, -1, &task->thrid);
 	if (err) {
-		nuse_release_task(task);
+		rump_release_task(task);
 		free(td);
 		return;
 	}

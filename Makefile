@@ -49,7 +49,7 @@ endif
 NUSE_SRC+=\
 nuse-vif.c nuse-hostcalls.c nuse-config.c \
 nuse-vif-rawsock.c nuse-vif-tap.c nuse-vif-pipe.c nuse.c \
-nuse-sched.c rump.c nuse-glue.c
+rump-sched.c rump.c nuse-glue.c
 
 
 SIM_SRC=sim.c
