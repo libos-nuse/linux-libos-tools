@@ -7,7 +7,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
 #include <signal.h>
 #include <time.h>
@@ -83,12 +82,34 @@ rump_pub_lwproc_curlwp(void)
 }
 #endif /* RUMPRUN_READY */
 
+static size_t strlen(const char *s)
+{
+	const char *sc;
+
+	for (sc = s; *sc != '\0'; ++sc)
+		/* nothing */;
+	return sc - s;
+}
+
+static char *strncpy(char *dest, const char *src, size_t count)
+{
+	char *tmp = dest;
+
+	while (count) {
+		if ((*tmp = *src) != 0)
+			src++;
+		tmp++;
+		count--;
+	}
+	return dest;
+}
+
 struct nuse_task *nuse_new_task(char *name)
 {
 	struct nuse_task *task;
 
-	task = malloc(sizeof(struct nuse_task));
-	memset(task, 0, sizeof(*task));
+	task = lib_malloc(sizeof(struct nuse_task));
+	lib_memset(task, 0, sizeof(*task));
 	task->s_task = g_exported->task_create(task, ++nuse_pid);
 	strncpy(task->name, name, strlen(name));
 	rumpuser_cv_init(&task->cv);
@@ -211,8 +232,8 @@ struct SimTask *nuse_task_start(struct SimKernel *kernel,
 	int joinable = 1;
 	char *name = "task";
 
-	td = malloc(sizeof(*td));
-	memset(td, 0, sizeof(*td));
+	td = lib_malloc(sizeof(*td));
+	lib_memset(td, 0, sizeof(*td));
 	td->newlwp = nuse_new_task(name);
 	rumpuser_curlwpop(RUMPUSER_LWP_CREATE, (struct lwp *)td->newlwp);
 
@@ -242,8 +263,8 @@ void *nuse_event_schedule_ns(struct SimKernel *kernel,
 	int joinable = 0;
 	char *name = "timer";
 
-	td = malloc(sizeof(*td));
-	memset(td, 0, sizeof(*td));
+	td = lib_malloc(sizeof(*td));
+	lib_memset(td, 0, sizeof(*td));
 	td->newlwp = nuse_new_task(name);
 	rumpuser_curlwpop(RUMPUSER_LWP_CREATE, (struct lwp *)td->newlwp);
 

@@ -240,6 +240,7 @@ nuse_init(void)
 
 	/* now it's ready to accept rump IPC */
 	rump_init();
+	rump_syscall_proxy_init();
 
 	/* loopback IFF_UP */
 	nuse_netdev_lo_up();

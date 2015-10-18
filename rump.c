@@ -228,7 +228,6 @@ rump_syscall_proxy_init(void)
 {
 	char *url;
 	char buf[64];
-
 	url = getenv("RUMP_SERVER");
 	if (!url) {
 		sprintf(buf, "unix://%s.%d", RUMPSERVER_DEFAULT, getpid());
@@ -256,22 +255,35 @@ int nuse_vprintf(struct SimKernel *kernel, const char *str, va_list args)
 }
 void *nuse_malloc(struct SimKernel *kernel, unsigned long size)
 {
-	return malloc(size);
+	void *mem;
+
+	rumpuser_malloc(size, 8, &mem);
+	return mem;
 }
 void nuse_free(struct SimKernel *kernel, void *buffer)
 {
-	return free(buffer);
+	return rumpuser_free(buffer, -1); /* XXX */
 }
 
 void *nuse_memcpy(struct SimKernel *kernel, void *dst, const void *src,
 		unsigned long size)
 {
-	return memcpy(dst, src, size);
+	char *tmp = dst;
+	const char *s = src;
+
+	while (size--)
+		*tmp++ = *s++;
+	return dst;
 }
 void *nuse_memset(struct SimKernel *kernel, void *dst, char value,
 		unsigned long size)
 {
-	return memset(dst, value, size);
+	unsigned char *ptr = dst;
+
+	while (size--)
+		*ptr++ = (unsigned char)value;
+
+	return dst;
 }
 __u64 nuse_current_ns(struct SimKernel *kernel)
 {
@@ -279,7 +291,8 @@ __u64 nuse_current_ns(struct SimKernel *kernel)
 	static __u64 init_ns = -1;
 
 
-	if (clock_gettime(CLOCK_MONOTONIC, &tp) == -1)
+	if (rumpuser_clock_gettime(RUMPUSER_CLOCK_ABSMONO, &tp.tv_sec,
+				   &tp.tv_nsec) == -1)
 		return init_ns;
 
 	if (init_ns == -1)
@@ -289,7 +302,10 @@ __u64 nuse_current_ns(struct SimKernel *kernel)
 }
 unsigned long nuse_random(struct SimKernel *kernel)
 {
-	return random();
+	unsigned long val, randlen;
+
+	rumpuser_getrandom(&val, sizeof(val), 0, &randlen);
+	return val;
 }
 char *nuse_getenv(struct SimKernel *kernel, const char *name)
 {
@@ -329,8 +345,9 @@ void
 libos_init(void)
 {
 	/* are those rump hypercalls? */
-	struct SimImported *imported = malloc(sizeof(struct SimImported));
-	memset(imported, 0, sizeof(struct SimImported));
+	struct SimImported *imported;
+	rumpuser_malloc(sizeof(struct SimImported), 8, (void **)&imported);
+	//memset(imported, 0, sizeof(struct SimImported));
 	imported->vprintf = nuse_vprintf;
 	imported->malloc = nuse_malloc;
 	imported->free = nuse_free;
@@ -363,7 +380,7 @@ libos_init(void)
 	imported->signal_raised = nuse_signal_raised;
 	imported->poll_event = NULL;
 
-	g_exported = malloc(sizeof(struct SimExported));
+	rumpuser_malloc(sizeof(struct SimExported), 8, (void **)&g_exported);
 
 	lib_init (g_exported, imported, NULL);
 
@@ -379,8 +396,6 @@ rump_init(void)
 
 	libos_init();
 	nuse_sched_init();
-
-	rump_syscall_proxy_init();
 
 	return 0;
 }

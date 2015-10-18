@@ -25,5 +25,6 @@ void nuse_dev_xmit(struct SimKernel *kernel, struct SimDevice *dev,
 /* rump.c */
 int rump_init(void);
 void rump_exit(void);
+void rump_syscall_proxy_init(void);
 
 #endif /* NUSE_H */

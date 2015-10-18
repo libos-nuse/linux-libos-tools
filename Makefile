@@ -77,10 +77,16 @@ DEPS+=$(addprefix ./.,$(addsuffix .o.d,$(basename $(SIM_SRC))))
 
 # build target
 %.o : %.c Makefile
-	$(QUIET_CC) $(CC) $(CFLAGS) -c $< -o $@
+	$(QUIET_CC) $(CC) $(CFLAGS) -c $< -o $@ || exit -1;\
+	${NM} -go $@ | awk ' \
+	$$NF!~/^'${_PQ}'(${EXP_SYMRENAME})/ \
+	{s=$$NF;sub(/^'${_PQ}'/, "&rumpns_", s); print $$NF, s}'\
+	| sort | uniq  > $@.renametab; \
+	objcopy --preserve-dates --redefine-syms $@.renametab $@; \
+	rm -f $@.renametab
 
 # order of $(dpdkl_$(DPDK)) matters...
-$(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
+$(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(srctree)/$(KERNEL_LIB) Makefile $(RUMP_LIB)
 	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(dpdkl_$(DPDK)) $(NUSE_OBJ) $(LDFLAGS_NUSE) -o $@
 	@ln -s -f $(NUSE_LIB) libnuse-linux.so
 	@ln -s -f ./nuse.sh ./nuse
@@ -89,7 +95,7 @@ $(NUSE_SLIB): $(NUSE_LIB)
 	$(QUIET_AR) rm -f libnuse-linux.a ; $(AR) cru $@ $(DPDK_OBJ) $(NUSE_OBJ)
 
 $(SIM_LIB): $(SIM_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
-	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(KERNEL_OBJS_SIM) $(LDFLAGS_SIM) -o $@
+	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(LDFLAGS_SIM) -o $@ #$(KERNEL_OBJS_SIM)
 	@ln -s -f $(SIM_LIB) libsim-linux.so
 
 FORCH:
