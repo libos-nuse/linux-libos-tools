@@ -73,13 +73,7 @@ DEPS+=$(addprefix ./.,$(addsuffix .o.d,$(basename $(SIM_SRC))))
 
 # build target
 %.o : %.c Makefile
-	$(QUIET_CC) $(CC) $(CFLAGS) -c $< -o $@ || exit -1;\
-	${NM} -go $@ | awk ' \
-	$$NF!~/^'${_PQ}'(${EXP_SYMRENAME})/ \
-	{s=$$NF;sub(/^'${_PQ}'/, "&rumpns_", s); print $$NF, s}'\
-	| sort | uniq  > $@.renametab; \
-	objcopy --preserve-dates --redefine-syms $@.renametab $@; \
-	rm -f $@.renametab
+	$(QUIET_CC) $(CC) $(CFLAGS) -c $< -o $@
 
 # order of $(dpdkl_$(DPDK)) matters...
 $(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(srctree)/$(KERNEL_LIB) Makefile $(RUMP_LIB)
