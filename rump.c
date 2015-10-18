@@ -396,6 +396,7 @@ rump_init(void)
 
 	libos_init();
 	nuse_sched_init();
+	rump_consdev_init();
 
 	return 0;
 }
