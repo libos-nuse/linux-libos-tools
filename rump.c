@@ -34,6 +34,15 @@ extern void lib_init(struct SimExported *exported,
 		const struct SimImported *imported,
 		struct SimKernel *kernel);
 
+static void rump_libos_hyp_lwpexit(void);
+static struct lwp *rump_libos_lwproc_curlwp(void);
+static int rump_libos_lwproc_newlwp(pid_t pid);
+static void rump_libos_lwproc_switch(struct lwp *newlwp);
+static void rump_libos_lwproc_release(void);
+static int rump_libos_lwproc_rfork(void *priv, int flags, const char *comm);
+#define rump_schedule(x)
+#define rump_unschedule(x)
+
 int
 rump_daemonize_begin(void)
 {
@@ -66,6 +75,62 @@ rump_pub_etfs_remove(const char *arg1)
 {
 	return 0;
 }
+
+
+int
+rump_pub_lwproc_rfork(int arg1)
+{
+	int rv = 0;
+
+	rump_schedule();
+//	rv = rump_libos_lwproc_rfork(arg1);
+	rump_unschedule();
+
+	return rv;
+}
+
+int
+rump_pub_lwproc_newlwp(pid_t arg1)
+{
+	int rv;
+
+	rump_schedule();
+	rv = rump_libos_lwproc_newlwp(arg1);
+	rump_unschedule();
+
+	return rv;
+}
+
+void
+rump_pub_lwproc_switch(struct lwp *arg1)
+{
+
+	rump_schedule();
+	rump_libos_lwproc_switch(arg1);
+	rump_unschedule();
+}
+
+void
+rump_pub_lwproc_releaselwp(void)
+{
+
+	rump_schedule();
+	rump_libos_lwproc_release();
+	rump_unschedule();
+}
+
+struct lwp *
+rump_pub_lwproc_curlwp(void)
+{
+	struct lwp * rv;
+
+	rump_schedule();
+	rv = rump_libos_lwproc_curlwp();
+	rump_unschedule();
+
+	return rv;
+}
+
 
 int
 rump_syscall(int num, void *data, size_t dlen, register_t *retval)
