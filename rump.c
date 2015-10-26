@@ -451,6 +451,7 @@ libos_init(void)
 
 }
 
+
 int
 rump_init(void)
 {
@@ -459,6 +460,13 @@ rump_init(void)
 		return EINVAL;
 	}
 
+	/* FIXME: refer env RUMP_VERBOSE */
+#if 1
+extern int rumpns_console_printk[];
+	rumpns_console_printk[0] = 10;
+#endif
+
+	rump_early_consdev_init();
 	libos_init();
 	rump_sched_init();
 	rump_consdev_init();
