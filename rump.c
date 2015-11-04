@@ -29,6 +29,8 @@
 
 #define RUMPSERVER_DEFAULT "/tmp/rump-server-nuse"
 struct SimExported *g_exported = NULL;
+static int rump_sysproxy_running = 0;
+
 
 extern void lib_init(struct SimExported *exported,
 		const struct SimImported *imported,
@@ -40,8 +42,16 @@ static int rump_libos_lwproc_newlwp(pid_t pid);
 static void rump_libos_lwproc_switch(struct lwp *newlwp);
 static void rump_libos_lwproc_release(void);
 static int rump_libos_lwproc_rfork(void *priv, int flags, const char *comm);
-#define rump_schedule(x)
-#define rump_unschedule(x)
+
+void
+rump_schedule()
+{
+}
+
+void
+rump_unschedule()
+{
+}
 
 int
 rump_daemonize_begin(void)
@@ -293,13 +303,17 @@ rump_syscall_proxy_init(void)
 {
 	char *url;
 	char buf[64];
+	int ret;
+
 	url = getenv("RUMP_SERVER");
 	if (!url) {
 		sprintf(buf, "unix://%s.%d", RUMPSERVER_DEFAULT, getpid());
 		url = strdup(buf);
 	}
 	umask(0007);
-	rumpuser_sp_init(url, "Linux", UTS_RELEASE, UTS_MACHINE);
+	ret = rumpuser_sp_init(url, "Linux", UTS_RELEASE, UTS_MACHINE);
+	if (ret == 0)
+		rump_sysproxy_running = 1;
 	rumpuser_dprintf("===rump syscall proxy start at %s===\n", url);
 }
 
@@ -478,5 +492,7 @@ void
 rump_exit(void)
 {
 	rumpuser_dprintf("rump_server finishing.\n");
-	rumpuser_sp_fini(NULL);
+	if (rump_sysproxy_running)
+		rumpuser_sp_fini(NULL);
+	rumpuser_exit(0);
 }
