@@ -129,6 +129,37 @@ ssize_t nuse_recvmsg(int fd, struct msghdr *msghdr, int flags)
 }
 weak_alias(nuse_recvmsg, recvmsg);
 
+/* XXX: timeout is not implemented. */
+int nuse_recvmmsg(int fd, struct mmsghdr *msgvec, unsigned int vlen,
+		  int flags, const struct timespec *timeout)
+{
+	int err, datagrams;
+	struct mmsghdr *entry;
+
+	datagrams = 0;
+	entry = msgvec;
+	err = 0;
+
+	while (datagrams < vlen) {
+		err = nuse_recvmsg(fd,
+				   (struct msghdr *)entry,
+				   flags);
+		if (err < 0)
+			break;
+		entry->msg_len = err;
+		++entry;
+		++datagrams;
+	}
+
+	/* We only return an error if no datagrams were able to be recvmmsg */
+	if (datagrams != 0)
+		return datagrams;
+
+	return err;
+}
+weak_alias(nuse_recvmmsg, recvmmsg);
+weak_alias(nuse_recvmmsg, __recvmmsg);
+
 ssize_t nuse_sendmsg(int fd, const struct msghdr *msghdr, int flags)
 {
 	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
