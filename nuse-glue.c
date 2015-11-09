@@ -157,8 +157,17 @@ int nuse_recvmmsg(int fd, struct mmsghdr *msgvec, unsigned int vlen,
 
 	return err;
 }
+/*
+ * FIXME: recvmmsg has different prototypes in different libc(s) ?
+ * such as recvmmsg(...., const struct timespec *) or
+ * recvmmsg(....,  struct timespec *) etc.
+ * so disable weak alias for a while.
+ * 
+ */
+#if 0
 weak_alias(nuse_recvmmsg, recvmmsg);
 weak_alias(nuse_recvmmsg, __recvmmsg);
+#endif
 
 ssize_t nuse_sendmsg(int fd, const struct msghdr *msghdr, int flags)
 {
