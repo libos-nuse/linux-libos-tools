@@ -31,7 +31,7 @@ RUMP_CFLAGS=-I./$(RUMP_TOP)/lib/librumpuser \
 	-I. -DRUMP_CLIENT \
 	$(RUMP_DEBUG)
 
-RUMP_LDFLAGS=-lpthread -ldl -Wl,-rpath=. -L. -lrumpclient $(covl_$(COV))
+RUMP_LDFLAGS=-lpthread -ldl -Wl,-rpath=. -L. -lrumpclient $(covl_$(COV)) -Wl,-z,lazy
 
 RUMP_NUSE_OBJ=$(addsuffix .o,$(basename $(RUMP_NUSE_SRC)))
 RUMP_OBJ=$(addsuffix .o,$(basename $(RUMP_SRC)))
@@ -78,7 +78,7 @@ $(RUMP_NUSE_OBJ): %.o : %.c $(RUMPUSER_CONF_H) Makefile.rump
 $(RUMP_OBJ): %.o : %.c $(RUMPUSER_CONF_H) Makefile.rump
 	$(QUIET_CC) $(CC) $(CFLAGS) $(RUMP_CFLAGS) -DHOSTOPS -c $< -o $@
 librumpserver.so: $(RUMP_TOP) $(RUMP_OBJ) $(RUMP_NUSE_OBJ) Makefile.rump Makefile
-	$(QUIET_LINK) $(CC) -shared $(RUMPS_OBJ) -o $@
+	$(QUIET_LINK) $(CC) -shared -Wl,-z,lazy $(RUMPS_OBJ) -o $@
 
 
 #### rump {client,hijack} compile

@@ -59,7 +59,7 @@ KERNEL_OBJS_SIM=$(addprefix $(srctree)/, $(OBJS))
 ALL_OBJS+=$(SIM_OBJ) $(NUSE_OBJ)
 
 # build flags
-LDFLAGS_NUSE = -shared -nodefaultlibs -L. -lrumpserver -ldl -lpthread -lrt $(DPDK_LDFLAGS)
+LDFLAGS_NUSE = -shared -nodefaultlibs -L. -lrumpserver -ldl -lpthread -lrt $(DPDK_LDFLAGS) -Wl,-z,lazy
 LDFLAGS_SIM = -shared -nodefaultlibs -g3 -Wl,-O1 -Wl,-T$(LIBOS_DIR)/linker.lds $(covl_$(COV))
 CFLAGS+= -Wall -fno-stack-protector -U_FORTIFY_SOURCE -fPIC -g3 -I. -I$(LIBOS_DIR)/include
 export CFLAGS srctree LIBOS_DIR
