@@ -33,6 +33,10 @@ static unsigned long rump_pid = 1000;
 static LIST_HEAD(, rump_task) task_list = LIST_HEAD_INITIALIZER(task_list);
 
 static struct rump_task *lwp0 = NULL;
+static bool threads_are_go;
+static struct rumpuser_mtx *thrmtx;
+static struct rumpuser_cv *thrcv;
+
 /* librumpuser/rumpuser_int.h */
 int  rumpuser__errtrans(int);
 
@@ -156,14 +160,8 @@ struct SimTask *rump_task_current(struct SimKernel *kernel)
 	}
 
 	if (!task) {
-#if 1
 		task = lwp0;
 		rumpuser_curlwpop(RUMPUSER_LWP_SET, (struct lwp *)task);
-#else
-		task = nuse_new_task("auto");
-		rumpuser_curlwpop(RUMPUSER_LWP_CREATE, (struct lwp *)task);
-		rumpuser_curlwpop(RUMPUSER_LWP_SET, (struct lwp *)task);
-#endif
 	}
 
 	return task->s_task;
@@ -184,6 +182,16 @@ static void *rump_task_start_trampoline(void *arg)
 	void (*f)(void *);
 	void *thrarg;
 	int err;
+
+	/* from src-netbsd/sys/rump/librump/rumpkern/thread.c */
+	/* don't allow threads to run before all CPUs have fully attached */
+	if (!threads_are_go) {
+		rumpuser_mutex_enter_nowrap(thrmtx);
+		while (!threads_are_go) {
+			rumpuser_cv_wait_nowrap(thrcv, thrmtx);
+		}
+		rumpuser_mutex_exit(thrmtx);
+	}
 
 	rumpuser_curlwpop(RUMPUSER_LWP_SET, (struct lwp *)task);
 
@@ -356,6 +364,16 @@ static void *rump_clock_thread(void *noarg)
 	long nsec;
 	int error;
 
+	/* from src-netbsd/sys/rump/librump/rumpkern/thread.c */
+	/* don't allow threads to run before all CPUs have fully attached */
+	if (!threads_are_go) {
+		rumpuser_mutex_enter_nowrap(thrmtx);
+		while (!threads_are_go) {
+			rumpuser_cv_wait_nowrap(thrcv, thrmtx);
+		}
+		rumpuser_mutex_exit(thrmtx);
+	}
+
 	error = rumpuser_clock_gettime(RUMPUSER_CLOCK_ABSMONO, &sec, &nsec);
 	if (error) {
 		lib_printf("clock: cannot get monotonic time\n");
@@ -384,10 +402,39 @@ static void *rump_clock_thread(void *noarg)
 	return NULL;
 }
 
+/* from src-netbsd/sys/rump/librump/rumpkern/thread.c */
+void
+rump_thread_allow(struct lwp *l)
+{
+#ifdef notyet
+	struct thrdesc *td;
+#endif
+
+	rumpuser_mutex_enter(thrmtx);
+	if (l == NULL) {
+		threads_are_go = true;
+	} else {
+#ifdef notyet
+		TAILQ_FOREACH(td, &newthr, entries) {
+			if (td->newlwp == l) {
+				td->runnable = 1;
+				break;
+			}
+		}
+#endif
+	}
+	rumpuser_cv_broadcast(thrcv);
+	rumpuser_mutex_exit(thrmtx);
+}
+
 void rump_sched_init(void)
 {
 	int rv;
 	void *thrid;
+
+	rumpuser_mutex_init(&thrmtx, RUMPUSER_MTX_SPIN);
+	rumpuser_cv_init(&thrcv);
+	threads_are_go = false;
 
 	rv = rumpuser_thread_create(rump_clock_thread, NULL, "clock",
 				    0, 0, -1, &thrid);

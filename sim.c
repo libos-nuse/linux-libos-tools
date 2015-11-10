@@ -29,12 +29,15 @@ extern void lib_init(struct SimExported *exported,
 		const struct SimImported *imported,
 		struct SimKernel *kernel);
 
+extern void rump_dce_consdev_init(void);
+
 void sim_init(struct SimExported *exported, const struct SimImported *imported,
 	      struct SimKernel *kernel)
 {
 	int i;
 
 	lib_init(exported, imported, kernel);
+	rump_dce_consdev_init();
 	/* XXX handle atexit registration for gcov */
 	for (i = 0; i < 1024; i++) {
 		if (atexit_list[i]) {

@@ -481,8 +481,9 @@ extern int rumpns_console_printk[];
 #endif
 
 	rump_early_consdev_init();
-	libos_init();
 	rump_sched_init();
+	libos_init();
+	rump_thread_allow(NULL);
 	rump_consdev_init();
 
 	return 0;

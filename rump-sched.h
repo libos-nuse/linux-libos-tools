@@ -38,5 +38,6 @@ void *rump_event_schedule_ns(struct SimKernel *kernel,
 void rump_event_cancel(struct SimKernel *kernel, void *event);
 void rump_task_wait(struct SimKernel *kernel);
 int rump_task_wakeup(struct SimKernel *kernel, struct SimTask *task);
+void rump_thread_allow(struct lwp *l);
 
 #endif /* RUMP_SCHED_H */

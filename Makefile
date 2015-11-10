@@ -85,7 +85,7 @@ $(NUSE_SLIB): $(NUSE_LIB)
 	$(QUIET_AR) rm -f libnuse-linux.a ; $(AR) cru $@ $(DPDK_OBJ) $(NUSE_OBJ)
 
 $(SIM_LIB): $(SIM_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
-	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(LDFLAGS_SIM) -o $@ #$(KERNEL_OBJS_SIM)
+	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(LDFLAGS_SIM) -o $@ $(KERNEL_OBJS_SIM)
 	@ln -s -f $(SIM_LIB) libsim-linux.so
 
 FORCH:
