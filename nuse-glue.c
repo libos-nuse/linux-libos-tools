@@ -62,6 +62,7 @@ int nuse_socket(int domain, int type, int protocol)
 	int ret, real_fd;
 
 	if (domain == AF_UNIX) {
+		if (!host_socket) nuse_hostcall_init();
 		real_fd = host_socket (domain, type, protocol);
 		if (real_fd == -1)
 			return real_fd;
@@ -95,6 +96,7 @@ int nuse_close(int fd)
 			nuse_fd_table[fd].epoll_fd = NULL;
 			return 0;
 		} else if (nuse_fd_table[fd].real_fd > 0) {
+			if (!host_close) nuse_hostcall_init();
 			return host_close(nuse_fd_table[fd].real_fd);
 		}
 		return EBADF;
@@ -315,8 +317,10 @@ weak_alias(nuse_accept, accept);
 
 ssize_t nuse_write(int fd, const void *buf, size_t count)
 {
-	if (!nuse_fd_table[fd].nuse_sock)
+	if (!nuse_fd_table[fd].nuse_sock) {
+		if (!host_write) nuse_hostcall_init();
 		return host_write(nuse_fd_table[fd].real_fd, buf, count);
+	}
 
 	struct msghdr msg;
 	struct iovec iov;
@@ -335,8 +339,10 @@ weak_alias(nuse_write, write);
 
 ssize_t nuse_writev(int fd, const struct iovec *iov, int count)
 {
-	if (!nuse_fd_table[fd].nuse_sock)
+	if (!nuse_fd_table[fd].nuse_sock) {
+		if (!host_writev) nuse_hostcall_init();
 		return host_writev(nuse_fd_table[fd].real_fd, iov, count);
+	}
 
 	struct msghdr msg;
 
@@ -379,8 +385,10 @@ weak_alias(nuse_send, send);
 
 ssize_t nuse_read(int fd, void *buf, size_t count)
 {
-	if (!nuse_fd_table[fd].nuse_sock)
+	if (!nuse_fd_table[fd].nuse_sock) {
+		if (!host_read) nuse_hostcall_init();
 		return host_read(nuse_fd_table[fd].real_fd, buf, count);
+	}
 
 	struct msghdr msg;
 	struct iovec iov;
@@ -477,8 +485,10 @@ int nuse_ioctl(int fd, int request, ...)
 	argp = va_arg(vl, char *);
 	va_end(vl);
 
-	if (!nuse_fd_table[fd].nuse_sock)
+	if (!nuse_fd_table[fd].nuse_sock) {
+		if (!host_ioctl) nuse_hostcall_init();
 		return host_ioctl(nuse_fd_table[fd].real_fd, request, argp);
+	}
 
 	return g_exported->sock_ioctl(nuse_fd_table[fd].nuse_sock->kern_sock, request, argp);
 }
@@ -494,8 +504,10 @@ int fcntl(int fd, int cmd, ... /* arg */ )
 	argp = va_arg(vl, int *);
 	va_end(vl);
 
-	if (!nuse_fd_table[fd].nuse_sock)
+	if (!nuse_fd_table[fd].nuse_sock) {
+		if (!host_fcntl) nuse_hostcall_init();
 		return host_fcntl(nuse_fd_table[fd].real_fd, cmd, argp);
+	}
 
 	/* nuse routine */
 	switch (cmd) {
@@ -528,6 +540,8 @@ int open(const char *pathname, int flags, ...)
 	va_list vl;
 
 	va_start(vl, flags);
+
+	if (!host_open) nuse_hostcall_init();
 	int real_fd = host_open(pathname, flags, va_arg(vl, mode_t));
 	va_end(vl);
 
@@ -541,6 +555,7 @@ int open(const char *pathname, int flags, ...)
 
 int open64(const char *pathname, int flags, mode_t mode)
 {
+	if (!host_open64) nuse_hostcall_init();
 	int real_fd = host_open64(pathname, flags, mode);
 
 	/*  printf ("%d, %llu %s %s\n", nuse_fd_table[curfd].real_fd, curfd, pathname, __FUNCTION__); */
@@ -554,6 +569,7 @@ int open64(const char *pathname, int flags, mode_t mode)
 
 int pipe(int pipefd[2])
 {
+	if (!host_pipe) nuse_hostcall_init();
 	int ret = host_pipe(pipefd);
 
 	if (ret == -1)
@@ -583,6 +599,7 @@ hostpoll(void *arg)
 	int to;
 
 	to = parg->ts ? timespec_to_ns(parg->ts) / NSEC_PER_MSEC : -1;
+	if (!host_poll) nuse_hostcall_init();
 	rv = host_poll(parg->pfds, parg->nfds, to);
 	if (rv == -1)
 		parg->errnum = errno;
