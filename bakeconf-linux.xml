@@ -301,7 +301,7 @@
      <module name="iproute2-dev">
        <source type="git">
          <attribute name="url" value="https://git.kernel.org/pub/scm/linux/kernel/git/shemminger/iproute2.git"/>
-         <attribute name="revision" value="net-next"/>
+         <attribute name="revision" value="v4.4.0"/>
          <attribute name="module_directory" value="iproute2-dev"/>
        </source>
        <depends_on name="libdb-dev" optional="False"/>
