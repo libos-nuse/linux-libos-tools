@@ -77,6 +77,7 @@ $(NUSE_LIB): $(DPDK_OBJ) $(NUSE_OBJ) $(RUMP_SERVER_LIB) $(srctree)/$(KERNEL_LIB)
 $(SIM_LIB): $(SIM_OBJ) $(srctree)/$(KERNEL_LIB) Makefile
 	$(QUIET_LINK) $(CC) -Wl,--whole-archive $(SIM_OBJ) $(KERNEL_OBJS_SIM) $(LDFLAGS_SIM) -o $@; \
 	ln -s -f $(SIM_LIB) libsim-linux.so
+	ln -s -f $(SIM_LIB) liblinux.so
 
 $(RUMP_CLIENT_LIB): Makefile.rump Makefile FORCE
 	$(Q) $(MAKE) $(PRINT_DIR) -f Makefile.rump $@
