@@ -1,6 +1,6 @@
 [submodule "rump"]
 	path = rump
-	url = git://github.com/libos-nuse/src-netbsd.git
+	url = https://github.com/libos-nuse/src-netbsd.git
 [submodule "netmap"]
 	path = netmap
 	url = https://code.google.com/p/netmap/
